@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumo | A voice app for kids that parents can actually trust</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "paper":      "#FBF6EC",
+          "paper-2":    "#F4ECDC",
+          "paper-3":    "#EFE4CE",
+          "ink":        "#1E1A14",
+          "ink-soft":   "#4A433A",
+          "ink-mute":   "#8A8170",
+          "rule":       "#E3D7BE",
+          "sun":        "#F4B24A",
+          "sun-soft":   "#FCE0A9",
+          "coral":      "#E86B5A",
+          "teal":       "#3F8C85",
+          "cream-card": "#FFFBF2"
+        },
+        borderRadius: {
+          "DEFAULT": "8px",
+          "lg": "14px",
+          "xl": "22px",
+          "2xl": "28px",
+          "full": "9999px"
+        },
+        fontFamily: {
+          "display": ["Fraunces", "ui-serif", "Georgia", "serif"],
+          "body":    ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          "mono":    ["'JetBrains Mono'", "ui-monospace", "monospace"]
+        },
+        boxShadow: {
+          "soft":  "0 1px 0 rgba(30,26,20,0.04), 0 18px 40px -24px rgba(30,26,20,0.18)",
+          "cozy":  "0 1px 0 rgba(30,26,20,0.04), 0 30px 60px -30px rgba(30,26,20,0.22)",
+          "chip":  "inset 0 0 0 1px rgba(30,26,20,0.08)"
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root{
+    --paper:#FBF6EC; --paper-2:#F4ECDC; --paper-3:#EFE4CE;
+    --ink:#1E1A14; --ink-soft:#4A433A; --ink-mute:#8A8170;
+    --rule:#E3D7BE; --sun:#F4B24A; --sun-soft:#FCE0A9;
+    --coral:#E86B5A; --teal:#3F8C85; --card:#FFFBF2;
+  }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01","cv11";
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .font-display{ font-family:'Fraunces', ui-serif, Georgia, serif; font-variation-settings:"opsz" 144, "SOFT" 50; letter-spacing:-0.015em; }
+  .font-display-tight{ font-family:'Fraunces', ui-serif, Georgia, serif; font-variation-settings:"opsz" 144, "SOFT" 100; letter-spacing:-0.025em; }
+  .eyebrow{ font-family:'Inter',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-mute); }
+  .caret{ color:var(--sun); }
+
+  /* Paper texture */
+  .paper-grain{
+    background-image:
+      radial-gradient(rgba(30,26,20,0.035) 1px, transparent 1px),
+      radial-gradient(rgba(30,26,20,0.025) 1px, transparent 1px);
+    background-size: 48px 48px, 72px 72px;
+    background-position: 0 0, 24px 36px;
+  }
+
+  /* Navigation */
+  .nav-link{ position:relative; color:var(--ink-soft); font-weight:500; font-size:15px; transition:color .2s; }
+  .nav-link:hover, .nav-link.active{ color:var(--ink); }
+  .nav-link.active::after{ content:''; position:absolute; bottom:-6px; left:0; right:0; height:2px; background:var(--sun); border-radius:2px; }
+
+  /* Buttons */
+  .btn-primary{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--ink); color:var(--paper);
+    padding:14px 26px; border-radius:999px;
+    font-weight:600; font-size:15px; letter-spacing:-0.01em;
+    transition:transform .15s ease, background .2s ease, box-shadow .2s;
+    box-shadow: 0 1px 0 rgba(30,26,20,0.1), 0 8px 24px -12px rgba(30,26,20,0.4);
+  }
+  .btn-primary:hover{ background:#2a241b; transform:translateY(-1px); }
+  .btn-primary:active{ transform:translateY(0); }
+  .btn-secondary{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    background:transparent; color:var(--ink);
+    padding:13px 24px; border-radius:999px;
+    font-weight:600; font-size:15px;
+    border:1.5px solid var(--ink);
+    transition:background .2s, color .2s;
+  }
+  .btn-secondary:hover{ background:var(--ink); color:var(--paper); }
+  .btn-sun{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--sun); color:var(--ink);
+    padding:14px 26px; border-radius:999px;
+    font-weight:600; font-size:15px;
+    transition:transform .15s ease, background .2s ease;
+    box-shadow: 0 1px 0 rgba(30,26,20,0.06), 0 14px 28px -14px rgba(244,178,74,0.7);
+  }
+  .btn-sun:hover{ background:#ecaa3f; transform:translateY(-1px); }
+
+  /* Hero orb */
+  .orb-wrap{ position:relative; width:min(520px, 100%); aspect-ratio:1/1; margin:0 auto; }
+  .orb-sky{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse at 50% 45%, #FCE0A9 0%, #F8CF83 35%, #F4ECDC 75%, transparent 100%);
+    border-radius:50%;
+    filter: blur(6px);
+  }
+  .orb-core{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:58%; aspect-ratio:1/1; border-radius:50%;
+    background:
+      radial-gradient(circle at 38% 32%, #FFFDF7 0%, #FFE9B8 30%, #F4B24A 70%, #D88E2C 100%);
+    box-shadow:
+      inset -20px -30px 60px rgba(216,142,44,0.4),
+      inset 20px 20px 40px rgba(255,253,247,0.6),
+      0 40px 80px -30px rgba(244,178,74,0.6),
+      0 0 0 1px rgba(30,26,20,0.05);
+    animation: orb-breathe 6s ease-in-out infinite;
+  }
+  .orb-core::before{
+    content:''; position:absolute; left:22%; top:18%; width:28%; height:20%;
+    background: radial-gradient(ellipse, rgba(255,253,247,0.9) 0%, transparent 70%);
+    border-radius:50%; filter:blur(2px);
+  }
+  @keyframes orb-breathe{
+    0%,100%{ transform:translate(-50%,-50%) scale(1); }
+    50%    { transform:translate(-50%,-50%) scale(1.03); }
+  }
+  .orb-ring{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    border:1.5px dashed rgba(244,178,74,0.5);
+    border-radius:50%;
+    pointer-events:none;
+  }
+  .orb-ring.r1{ width:78%; aspect-ratio:1/1; animation: orb-rotate 24s linear infinite; }
+  .orb-ring.r2{ width:92%; aspect-ratio:1/1; animation: orb-rotate 40s linear infinite reverse; border-color:rgba(232,107,90,0.35); }
+  @keyframes orb-rotate{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
+  .orb-star{
+    position:absolute; width:22px; height:22px; color:var(--sun);
+    animation: orb-twinkle 3s ease-in-out infinite;
+  }
+  .orb-star svg{ width:100%; height:100%; }
+  @keyframes orb-twinkle{
+    0%,100%{ opacity:.4; transform:scale(.85); }
+    50%    { opacity:1;  transform:scale(1.1); }
+  }
+  .waveform{ display:flex; gap:4px; align-items:flex-end; height:44px; }
+  .waveform span{ width:4px; background:var(--sun); border-radius:2px; animation: wf 1.4s ease-in-out infinite; }
+  .waveform span:nth-child(1){ height:40%; animation-delay:0s;   }
+  .waveform span:nth-child(2){ height:70%; animation-delay:.15s; }
+  .waveform span:nth-child(3){ height:100%;animation-delay:.3s;  background:var(--coral); }
+  .waveform span:nth-child(4){ height:65%; animation-delay:.45s; }
+  .waveform span:nth-child(5){ height:85%; animation-delay:.6s;  }
+  .waveform span:nth-child(6){ height:50%; animation-delay:.75s; background:var(--teal); }
+  .waveform span:nth-child(7){ height:75%; animation-delay:.9s;  }
+  @keyframes wf{ 0%,100%{ transform:scaleY(.5); } 50%{ transform:scaleY(1); } }
+
+  /* Badge chips */
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:6px 12px; border-radius:999px;
+    background:var(--sun-soft); color:#8a5a15;
+    font-size:12px; font-weight:600; letter-spacing:-0.005em;
+  }
+  .chip .dot{ width:6px; height:6px; border-radius:50%; background:var(--sun); }
+  .chip--teal{ background:#D9EDEB; color:#2a5f5a; }
+  .chip--teal .dot{ background:var(--teal); }
+  .chip--coral{ background:#FADAD5; color:#993a2c; }
+  .chip--coral .dot{ background:var(--coral); }
+
+  /* Marquee */
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .animate-marquee { animation: marquee 42s linear infinite; }
+  .marq-sep{ display:inline-block; margin:0 22px; color:var(--sun); }
+
+  /* Scroll reveal */
+  .scroll-reveal { opacity:0; transform:translateY(22px); transition:opacity 800ms ease-out,transform 800ms ease-out; scroll-margin-top:96px; }
+  .scroll-reveal.visible { opacity:1; transform:translateY(0); }
+  .stagger-item { opacity:0; transform:translateY(18px); transition:opacity 600ms ease-out, transform 600ms ease-out; }
+
+  /* Cards */
+  .card{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:22px;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+  .card:hover{ transform:translateY(-2px); box-shadow: 0 20px 40px -24px rgba(30,26,20,0.18); border-color:#D9C99F; }
+
+  /* IS / ISN'T ledger */
+  .ledger-row{ display:grid; grid-template-columns: 24px 1fr; gap:14px; padding:14px 0; border-top:1px dashed var(--rule); }
+  .ledger-row:first-child{ border-top:0; }
+  .ledger-mark{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; margin-top:1px; }
+  .mark-yes{ background:var(--sun-soft); color:#8a5a15; }
+  .mark-no{  background:#EFE4CE; color:#8A8170; }
+
+  /* Steps */
+  .step-num{
+    font-family:'Fraunces',serif; font-weight:500;
+    font-size:72px; line-height:1;
+    color:var(--sun);
+    font-variation-settings:"opsz" 144, "SOFT" 100;
+  }
+
+  /* FAQ */
+  .faq-item { border-top:1px solid var(--rule); }
+  .faq-item:last-child{ border-bottom:1px solid var(--rule); }
+  .faq-question { cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:24px; padding: 22px 4px; user-select:none; }
+  .faq-answer { overflow:hidden; max-height:0; transition:max-height .4s ease, padding .4s ease; }
+  .faq-answer.open { max-height:420px; }
+  .faq-icon { flex-shrink:0; width:28px; height:28px; border-radius:50%; background:var(--paper-2); display:inline-flex; align-items:center; justify-content:center; color:var(--ink); transition:transform .3s ease, background .2s; }
+  .faq-item.open .faq-icon { transform:rotate(45deg); background:var(--sun); }
+  .faq-item:hover .faq-icon{ background:var(--sun-soft); }
+
+  /* Tag list */
+  .tag{ display:inline-flex; align-items:center; padding:6px 12px; border:1px solid var(--rule); border-radius:999px; font-size:12px; color:var(--ink-soft); background:var(--paper); font-weight:500; }
+
+  /* Input */
+  .email-input{
+    width:100%; background:var(--paper); border:1.5px solid var(--rule);
+    border-radius:999px; padding:16px 22px;
+    color:var(--ink); font-size:16px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .email-input:focus{ outline:none; border-color:var(--sun); box-shadow: 0 0 0 4px rgba(244,178,74,0.2); }
+  .email-input::placeholder{ color:var(--ink-mute); }
+</style>
+
+<meta name="description" content="Lumo is a voice app for children with age-appropriate responses, strict content guardrails, and full parent visibility. No screens. No surprises.">
+<meta property="og:title" content="Lumo: A voice app for kids that parents can actually trust">
+<meta property="og:description" content="Made for curious kids. Built for peace of mind.">
+<meta property="og:image" content="/assets/og-image.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lumo.ai">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lumo: A voice app for kids that parents can actually trust">
+<meta name="twitter:description" content="Made for curious kids. Built for peace of mind.">
+<meta name="twitter:image" content="/assets/og-image.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cdefs%3E%3CradialGradient id='lg' cx='38%25' cy='32%25'%3E%3Cstop offset='0%25' stop-color='%23FFFDF7'/%3E%3Cstop offset='45%25' stop-color='%23FFE0A0'/%3E%3Cstop offset='100%25' stop-color='%23F5C842'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='13' cy='13' r='10' fill='url(%23lg)' stroke='%231E1A14' stroke-width='1.2'/%3E%3Ccircle cx='10' cy='10.5' r='1.6' fill='%231E1A14'/%3E%3C/svg%3E">
+<link rel="canonical" href="https://lumo.ai">
+</head>
+
+<body class="text-ink antialiased">
+
+<!-- ─── Nav ─── -->
+<header class="w-full top-0 sticky z-50" style="backdrop-filter:saturate(140%) blur(10px); background:rgba(251,246,236,0.86); border-bottom:1px solid var(--rule);">
+  <div class="flex justify-between items-center w-full px-6 md:px-10 py-5 max-w-[1240px] mx-auto">
+    <a class="flex items-center gap-2" href="#hero" aria-label="Lumo home">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+        <defs>
+          <radialGradient id="logoG" cx="38%" cy="32%">
+            <stop offset="0%" stop-color="#FFFDF7"/>
+            <stop offset="45%" stop-color="#FFE0A0"/>
+            <stop offset="100%" stop-color="#F4B24A"/>
+          </radialGradient>
+        </defs>
+        <circle cx="13" cy="13" r="10" fill="url(#logoG)" stroke="#1E1A14" stroke-width="1.2"/>
+        <circle cx="10" cy="10.5" r="1.6" fill="#1E1A14"/>
+      </svg>
+      <span class="text-[22px] font-display font-semibold text-ink">Lumo<span class="caret">.</span></span>
+    </a>
+    <nav class="hidden md:flex items-center gap-9">
+      <a class="nav-link" href="#what-is-lumo">About</a>
+      <a class="nav-link" href="#how-it-works">How it works</a>
+      <a class="nav-link" href="#privacy">Privacy</a>
+      <a class="nav-link" href="#faq">FAQ</a>
+    </nav>
+    <div class="flex items-center gap-3">
+      <a class="btn-primary !py-2.5 !px-5 !text-sm" href="/demo.html">Try Demo →</a>
+      <button id="hamburger" aria-label="Open menu" aria-expanded="false" class="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-[5px]">
+        <span class="ham-bar block w-4 h-[1.5px] bg-ink rounded transition-all duration-300 origin-center"></span>
+        <span class="ham-bar block w-4 h-[1.5px] bg-ink rounded transition-all duration-300 origin-center"></span>
+        <span class="ham-bar block w-4 h-[1.5px] bg-ink rounded transition-all duration-300 origin-center"></span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile menu -->
+  <div id="mobile-menu" style="max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;opacity:0;" class="border-t border-rule md:hidden">
+    <nav class="flex flex-col px-6 py-5 gap-1 max-w-[1240px] mx-auto">
+      <a class="mobile-nav-link py-3 text-[17px] font-medium text-ink-soft border-b border-rule/60 hover:text-ink transition-colors" href="#what-is-lumo">About</a>
+      <a class="mobile-nav-link py-3 text-[17px] font-medium text-ink-soft border-b border-rule/60 hover:text-ink transition-colors" href="#how-it-works">How it works</a>
+      <a class="mobile-nav-link py-3 text-[17px] font-medium text-ink-soft border-b border-rule/60 hover:text-ink transition-colors" href="#privacy">Privacy</a>
+      <a class="mobile-nav-link py-3 text-[17px] font-medium text-ink-soft border-b border-rule/60 hover:text-ink transition-colors" href="#faq">FAQ</a>
+      <a class="btn-primary mt-4 text-center" href="/demo.html">Try Demo →</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ─── Hero ─── -->
+  <section class="scroll-reveal relative overflow-hidden" id="hero">
+    <div class="absolute inset-0 paper-grain pointer-events-none opacity-70"></div>
+    <div aria-hidden="true" style="position:absolute; right:-8%; top:-10%; width:560px; height:560px; border-radius:50%; background:radial-gradient(circle, #FCE0A9 0%, transparent 65%); filter:blur(10px); pointer-events:none;"></div>
+
+    <div class="relative max-w-[1240px] mx-auto px-6 md:px-10 pt-20 md:pt-28 pb-16 md:pb-24">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <div class="lg:col-span-7">
+          <div class="flex items-center gap-2 mb-7">
+            <span class="chip"><span class="dot"></span>Now inviting families · Waitlist open</span>
+          </div>
+          <p class="eyebrow mb-5">Made for curious kids · Built for peace of mind</p>
+          <h1 class="font-display-tight text-[44px] sm:text-[58px] lg:text-[74px] font-medium text-ink leading-[1.04] mb-8">
+            A voice app for kids that <em style="font-style:italic; font-weight:500; color:var(--ink);">parents</em> can actually <span style="position:relative; display:inline-block;">trust<svg class="absolute left-0" style="bottom:-6px; width:100%; height:8px;" viewBox="0 0 200 10" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M2 6 C 40 2, 80 10, 120 4 S 180 2, 198 6" stroke="#F4B24A" stroke-width="3" stroke-linecap="round"/></svg></span>.
+          </h1>
+          <p class="text-[18px] text-ink-soft max-w-xl mb-9 leading-[1.6] mt-2">
+            Lumo lets children ask questions and talk through ideas using their voice, with age-appropriate responses, strict content guardrails, and full parent visibility. No screens. No surprises. No habits to form.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-3 mb-5">
+            <a class="btn-primary" href="/demo.html">
+              Try the demo
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a class="btn-secondary" href="#how-it-works">See how it works</a>
+          </div>
+          <p class="text-[13px] text-ink-mute">No signup. Speak with Lumo in your browser — mic access required.</p>
+        </div>
+
+        <div class="hidden lg:flex lg:col-span-5 justify-center">
+          <div class="orb-wrap">
+            <div class="orb-sky"></div>
+            <div class="orb-ring r2"></div>
+            <div class="orb-ring r1"></div>
+            <div class="orb-core"></div>
+            <div class="orb-star" style="top:8%; left:14%; animation-delay:0s;">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"/></svg>
+            </div>
+            <div class="orb-star" style="top:16%; right:10%; width:14px; height:14px; animation-delay:.6s; color:#E86B5A;">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"/></svg>
+            </div>
+            <div class="orb-star" style="bottom:14%; left:6%; width:16px; height:16px; animation-delay:1.2s; color:#3F8C85;">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"/></svg>
+            </div>
+            <div class="orb-star" style="bottom:8%; right:16%; width:12px; height:12px; animation-delay:1.8s;">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"/></svg>
+            </div>
+
+            <!-- floating speech tag -->
+            <div style="position:absolute; left:-8%; bottom:22%; background:var(--card); border:1px solid var(--rule); border-radius:18px; padding:10px 14px; box-shadow:0 18px 40px -24px rgba(30,26,20,0.25);">
+              <div style="font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute); margin-bottom:4px;">Child · 7</div>
+              <div style="font-family:'Fraunces',serif; font-size:15px; color:var(--ink);">"Why is the sky blue?"</div>
+            </div>
+
+            <!-- floating waveform tag -->
+            <div style="position:absolute; right:-6%; top:28%; background:var(--card); border:1px solid var(--rule); border-radius:18px; padding:12px 16px; box-shadow:0 18px 40px -24px rgba(30,26,20,0.25);">
+              <div style="font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute); margin-bottom:6px;">Lumo · listening</div>
+              <div class="waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trust strip -->
+      <div class="mt-16 md:mt-20 flex flex-wrap items-center gap-x-3 md:gap-x-10 gap-y-4 pt-6 border-t border-rule">
+        <span class="eyebrow">Built with</span>
+        <span class="tag">✓ COPPA compliance</span>
+        <span class="tag">✓ Parent-set age bands</span>
+        <span class="tag">✓ Real-time, not stored</span>
+        <span class="tag">✓ PIN-protected parent space</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Marquee ─── -->
+  <div class="w-full overflow-hidden border-y border-rule bg-paper-2 py-4 flex">
+    <div class="flex animate-marquee whitespace-nowrap items-center font-display text-[18px] md:text-[22px] text-ink">
+      <span>Voice-only<span class="marq-sep">✦</span>No audio stored<span class="marq-sep">✦</span>Parent-controlled<span class="marq-sep">✦</span>Time-limited by design<span class="marq-sep">✦</span>No engagement traps<span class="marq-sep">✦</span>Age-appropriate<span class="marq-sep">✦</span>No background listening<span class="marq-sep">✦</span></span>
+      <span>Voice-only<span class="marq-sep">✦</span>No audio stored<span class="marq-sep">✦</span>Parent-controlled<span class="marq-sep">✦</span>Time-limited by design<span class="marq-sep">✦</span>No engagement traps<span class="marq-sep">✦</span>Age-appropriate<span class="marq-sep">✦</span>No background listening<span class="marq-sep">✦</span></span>
+    </div>
+  </div>
+
+  <!-- ─── What is Lumo? ─── -->
+  <section class="scroll-reveal max-w-[820px] mx-auto px-6 md:px-10 py-24 md:py-32 text-center" id="what-is-lumo">
+    <p class="eyebrow mb-5">What is Lumo?</p>
+    <h2 class="font-display text-[40px] md:text-[56px] font-medium text-ink leading-[1.02] mb-10">Simple by design.<br/><span style="font-style:italic;">Honest</span> by default.</h2>
+    <div class="space-y-5 text-left md:text-center">
+      <p class="text-[19px] text-ink-soft leading-[1.6]">
+        Lumo is a voice-based app designed for children. Kids speak, Lumo responds, with age-appropriate language, on topics that are safe for children.
+      </p>
+      <p class="text-[19px] text-ink-soft leading-[1.6]">
+        That's it. There's no social layer, no reward system, no design intended to build a habit or bring kids back for more. Lumo doesn't try to be indispensable. It's an app: useful when it's being used, gone when it's not.
+      </p>
+      <p class="text-[19px] text-ink-soft leading-[1.6]">
+        Parents set the rules: how long a session lasts, what age band applies, and when Lumo is available. After each session, parents see a plain-language summary of what was discussed.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── What Lumo is / isn't ─── -->
+  <section class="scroll-reveal bg-paper-2 py-24 md:py-32 border-y border-rule" id="lumo-is">
+    <div class="max-w-[1100px] mx-auto px-6 md:px-10">
+      <div class="text-center mb-16 max-w-[720px] mx-auto">
+        <p class="eyebrow mb-4">Transparency matters</p>
+        <h2 class="font-display text-[40px] md:text-[56px] font-medium text-ink leading-[1.02] mb-5">What Lumo <em style="font-style:italic;">is</em>, and what it isn't.</h2>
+        <p class="text-[17px] text-ink-soft leading-relaxed">We want to be direct about this, because we think it matters.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <!-- IS -->
+        <div class="card p-9 stagger-item" style="background:var(--card);">
+          <div class="flex items-center gap-3 mb-7">
+            <span class="w-9 h-9 rounded-full flex items-center justify-center" style="background:var(--sun); color:var(--ink); font-weight:700;">✓</span>
+            <span class="font-display text-[26px] font-medium text-ink">Lumo is</span>
+          </div>
+          <div>
+            <div class="ledger-row"><span class="ledger-mark mark-yes">✓</span><span class="text-[15.5px] text-ink-soft leading-relaxed">A voice-based interaction app for children</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-yes">✓</span><span class="text-[15.5px] text-ink-soft leading-relaxed">Parent-configured and parent-visible at all times</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-yes">✓</span><span class="text-[15.5px] text-ink-soft leading-relaxed">Designed to respond appropriately to a child's age</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-yes">✓</span><span class="text-[15.5px] text-ink-soft leading-relaxed">Built to handle sensitive topics carefully and flag them for parents</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-yes">✓</span><span class="text-[15.5px] text-ink-soft leading-relaxed">Time-limited by design: sessions end when you say they do</span></div>
+          </div>
+        </div>
+        <!-- IS NOT -->
+        <div class="card p-9 stagger-item" style="background:var(--paper);">
+          <div class="flex items-center gap-3 mb-7">
+            <span class="w-9 h-9 rounded-full flex items-center justify-center" style="background:var(--paper-3); color:var(--ink-mute); font-weight:700;">✕</span>
+            <span class="font-display text-[26px] font-medium text-ink-mute">Lumo is not</span>
+          </div>
+          <div>
+            <div class="ledger-row"><span class="ledger-mark mark-no">✕</span><span class="text-[15.5px] text-ink-mute leading-relaxed">A companion, therapist, or emotional support app</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-no">✕</span><span class="text-[15.5px] text-ink-mute leading-relaxed">Designed to build habits or encourage repeated use</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-no">✕</span><span class="text-[15.5px] text-ink-mute leading-relaxed">A replacement for talking to a parent, teacher, or trusted adult</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-no">✕</span><span class="text-[15.5px] text-ink-mute leading-relaxed">A product that benefits from your child spending more time on it</span></div>
+            <div class="ledger-row"><span class="ledger-mark mark-no">✕</span><span class="text-[15.5px] text-ink-mute leading-relaxed">A source of advice on health, safety, or personal decisions</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="text-center text-[15px] text-ink-soft mt-12 max-w-[640px] mx-auto leading-relaxed italic">
+        We say this plainly because parents deserve to know exactly what they're putting in front of their child, and because we think honest products build more trust than clever ones.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── How It Works ─── -->
+  <section class="scroll-reveal py-24 md:py-32 px-6 md:px-10" id="how-it-works">
+    <div class="max-w-[1100px] mx-auto">
+      <div class="text-center mb-20 max-w-[680px] mx-auto">
+        <p class="eyebrow mb-4">How it works</p>
+        <h2 class="font-display text-[40px] md:text-[60px] font-medium text-ink leading-[1.02]">Three steps. <span style="font-style:italic;">That's all.</span></h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <!-- Step 1 -->
+        <div class="card p-8 stagger-item">
+          <div class="flex items-baseline justify-between mb-6">
+            <span class="step-num">01</span>
+            <span class="eyebrow" style="color:var(--sun); font-size:10px;">Step one</span>
+          </div>
+          <h3 class="font-display text-[24px] font-medium text-ink mb-3">Your child speaks</h3>
+          <p class="text-[15px] text-ink-soft leading-[1.6]">Lumo listens through the microphone. No typing, no navigation. The child's experience is entirely voice-based.</p>
+          <div class="mt-7 pt-6 border-t border-rule flex items-center gap-3">
+            <div class="waveform" style="height:28px;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="font-mono text-[11px] text-ink-mute">mic active</span>
+          </div>
+        </div>
+        <!-- Step 2 -->
+        <div class="card p-8 stagger-item">
+          <div class="flex items-baseline justify-between mb-6">
+            <span class="step-num">02</span>
+            <span class="eyebrow" style="color:var(--sun); font-size:10px;">Step two</span>
+          </div>
+          <h3 class="font-display text-[24px] font-medium text-ink mb-3">Lumo responds</h3>
+          <p class="text-[15px] text-ink-soft leading-[1.6]">Lumo replies using age-appropriate language. Content guardrails run on every response. If something sensitive comes up, Lumo redirects and logs it for the parent summary.</p>
+          <div class="mt-7 pt-6 border-t border-rule flex items-center gap-2 flex-wrap">
+            <span class="tag" style="background:#FCE0A9; border-color:#F3C06D; color:#8a5a15;">age-appropriate</span>
+            <span class="tag" style="background:#D9EDEB; border-color:#A9D3CF; color:#2a5f5a;">guardrails on</span>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div class="card p-8 stagger-item">
+          <div class="flex items-baseline justify-between mb-6">
+            <span class="step-num">03</span>
+            <span class="eyebrow" style="color:var(--sun); font-size:10px;">Step three</span>
+          </div>
+          <h3 class="font-display text-[24px] font-medium text-ink mb-3">You see what happened</h3>
+          <p class="text-[15px] text-ink-soft leading-[1.6]">After each session, you receive a plain-language summary. You'll know the topics covered and whether anything was flagged, without needing to read a full transcript.</p>
+          <div class="mt-7 pt-6 border-t border-rule">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="#8A8170" stroke-width="1.5"/><path d="M3 9h18" stroke="#8A8170" stroke-width="1.5"/></svg>
+              <span class="font-mono text-[11px] text-ink-mute">summary delivered</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Under the Hood (collapsible) ─── -->
+  <div class="px-6 md:px-10 py-14 border-t border-rule">
+    <div class="max-w-[1100px] mx-auto flex flex-col items-center">
+      <p class="text-[13px] text-ink-mute mb-4 text-center max-w-md">Technically curious? Here's what Lumo does before it says a word.</p>
+      <button id="uth-toggle" aria-expanded="false" class="flex items-center gap-3 px-6 py-3 rounded-full text-[14px] font-semibold text-ink hover:bg-paper-2 transition-all duration-200 border border-rule">
+        <span>Under the hood</span>
+        <svg id="uth-icon" class="w-4 h-4 flex-shrink-0" style="transition:transform 0.35s cubic-bezier(0.4,0,0.2,1)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="uth-panel" style="max-height:0;overflow:hidden;transition:max-height 0.6s cubic-bezier(0.4,0,0.2,1),opacity 0.4s ease;opacity:0;width:100%;">
+        <div class="pt-12 max-w-[1100px] mx-auto pb-6">
+          <div class="text-center mb-10">
+            <h2 class="font-display text-[32px] md:text-[44px] font-medium text-ink leading-[1.05] mb-3">What happens before Lumo speaks.</h2>
+            <p class="text-[16px] text-ink-soft max-w-[560px] mx-auto leading-relaxed">Every turn runs a deterministic pipeline. No response generated until all checks pass.</p>
+          </div>
+
+          <!-- Pipeline widget (warm palette) -->
+          <div id="lumo-pipeline" style="background:var(--card);border:1px solid var(--rule);border-radius:22px;padding:28px 20px;font-family:'Inter',sans-serif; box-shadow:0 18px 40px -30px rgba(30,26,20,0.18);">
+          <style>
+          #lumo-pipeline *{box-sizing:border-box}
+          #lumo-pipeline .pip-over{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-mute);margin-bottom:5px;display:block;transition:color .3s}
+          #lumo-pipeline .pip-label{font-family:'Fraunces',serif;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px;transition:color .3s;line-height:1.3}
+          #lumo-pipeline .pip-desc{font-size:11px;color:var(--ink-soft);line-height:1.5;transition:color .3s}
+          #lumo-pipeline .pip-badge{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:0.5px;padding:3px 7px;border-radius:999px;background:var(--paper-2);color:var(--ink-mute);border:1px solid var(--rule);transition:all .3s;white-space:nowrap}
+          #lumo-pipeline .pip-node{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:14px;position:relative;transition:border-color .3s,background .3s,box-shadow .3s;flex:1;min-width:0;}
+          #lumo-pipeline .pip-node.active{border-color:var(--sun);background:#FFF6E0;box-shadow:0 0 0 3px rgba(244,178,74,0.18)}
+          #lumo-pipeline .pip-node.active .pip-over{color:#8a5a15}
+          #lumo-pipeline .pip-node.active .pip-label{color:var(--ink)}
+          #lumo-pipeline .pip-node.active .pip-desc{color:var(--ink-soft)}
+          #lumo-pipeline .pip-node.active .pip-badge{background:var(--sun-soft);color:#8a5a15;border-color:#E9B65B}
+          #lumo-pipeline .pip-node.done{border-color:#D9C99F;background:#FBF3DE}
+          #lumo-pipeline .pip-node.done .pip-over{color:#8a5a15}
+          #lumo-pipeline .pip-dot{width:7px;height:7px;border-radius:50%;background:var(--rule);display:inline-block;margin-right:6px;vertical-align:middle;transition:background .3s;flex-shrink:0}
+          #lumo-pipeline .pip-node.active .pip-dot{background:var(--sun);box-shadow:0 0 6px rgba(244,178,74,.6)}
+          #lumo-pipeline .pip-node.done .pip-dot{background:#D9A33E}
+          #lumo-pipeline .pip-node.error{border-color:var(--coral);background:#FDEDE9}
+          #lumo-pipeline .pip-node.error .pip-over{color:#993a2c}
+          #lumo-pipeline .pip-node.error .pip-label{color:#993a2c}
+          #lumo-pipeline .pip-node.error .pip-desc{color:#993a2c}
+          #lumo-pipeline .pip-node.error .pip-badge{background:#FADAD5;color:#993a2c;border-color:#E9B7AE}
+          #lumo-pipeline .pip-node.error .pip-dot{background:var(--coral)}
+          #lumo-pipeline .pip-node.branch-node{border-style:dashed;background:var(--paper)}
+          #lumo-pipeline .pip-node.branch-node.active{border-style:solid;border-color:var(--sun);background:#FFF6E0}
+          #lumo-pipeline .pip-node.branch-node.done{border-style:dashed;border-color:#D9C99F}
+          #lumo-pipeline .pip-node.branch-node.error{border-style:solid;border-color:var(--coral);background:#FDEDE9}
+          #lumo-pipeline .h-arrow{display:flex;align-items:center;width:24px;flex-shrink:0}
+          #lumo-pipeline .h-arrow-line{flex:1;height:1.5px;background:var(--rule);position:relative;overflow:visible;border-radius:2px;}
+          #lumo-pipeline .h-arrow-fill{position:absolute;top:0;left:0;height:100%;width:0%;background:var(--sun);transition:width .45s ease;border-radius:2px;}
+          #lumo-pipeline .h-arrow-head{width:0;height:0;border-top:3px solid transparent;border-bottom:3px solid transparent;border-left:5px solid var(--rule);transition:border-left-color .45s}
+          #lumo-pipeline .h-arrow.lit .h-arrow-head{border-left-color:var(--sun)}
+          #lumo-pipeline .pip-wrap-link{height:22px;margin:4px 0 6px;position:relative}
+          #lumo-pipeline .pip-wrap-svg{display:block;width:100%;height:100%;overflow:visible}
+          #lumo-pipeline .pip-wrap-base{fill:none;stroke:var(--rule);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+          #lumo-pipeline .pip-wrap-fill{fill:none;stroke:var(--sun);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--path-length,320);stroke-dashoffset:var(--path-length,320);transition:stroke-dashoffset .55s ease,stroke .25s ease}
+          #lumo-pipeline .pip-wrap-link.lit .pip-wrap-fill{stroke-dashoffset:0}
+          #lumo-pipeline .pip-wrap-link.alert .pip-wrap-fill{stroke:var(--coral)}
+          #lumo-pipeline .pip-wrap-arrow{fill:var(--rule);transition:fill .25s ease,opacity .25s ease;opacity:.7}
+          #lumo-pipeline .pip-wrap-link.lit .pip-wrap-arrow{opacity:1;fill:var(--sun)}
+          #lumo-pipeline .pip-wrap-link.alert .pip-wrap-arrow{fill:var(--coral)}
+          #lumo-pipeline .pip-play-btn{display:block;margin:0 auto 24px;background:var(--ink);border:none;color:var(--paper);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.4px;padding:10px 22px;border-radius:999px;cursor:pointer;transition:background .2s, transform .15s;}
+          #lumo-pipeline .pip-play-btn:hover{background:#2a241b; transform:translateY(-1px);}
+          #lumo-pipeline .pip-play-btn:disabled{opacity:.5;cursor:not-allowed}
+          #lumo-pipeline .pip-status{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:9px;margin-top:16px}
+          #lumo-pipeline .pip-status-dot{width:7px;height:7px;border-radius:50%;background:var(--rule);flex-shrink:0;transition:background .3s}
+          #lumo-pipeline .pip-status-dot.on{background:var(--sun);box-shadow:0 0 6px rgba(244,178,74,.6)}
+          #lumo-pipeline .pip-status-txt{font-size:12px;color:var(--ink-mute);flex:1;transition:color .3s}
+          #lumo-pipeline .pip-status-txt.on{color:var(--ink)}
+          #lumo-pipeline .pip-status-time{font-size:11px;color:var(--ink-mute);min-width:46px;text-align:right;font-family:'JetBrains Mono',monospace}
+          #lumo-pipeline .pip-lat{margin-top:14px}
+          #lumo-pipeline .pip-lat-hd{display:flex;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-mute);margin-bottom:6px;font-family:'Inter',sans-serif;}
+          #lumo-pipeline .pip-lat-bar{height:3px;background:var(--paper-3);border-radius:2px;overflow:hidden;margin-bottom:6px}
+          #lumo-pipeline .pip-lat-fill{height:100%;width:0%;border-radius:2px;background:var(--sun);transition:width .65s ease}
+          #lumo-pipeline .pip-lat.alert .pip-lat-fill{background:var(--coral)}
+          #lumo-pipeline .pip-lat.alert #pipLatTotal{color:#993a2c !important}
+          #lumo-pipeline .pip-lat-segs{display:flex;gap:4px}
+          #lumo-pipeline .pip-lat-seg{flex:1;text-align:center;font-size:9px;color:var(--ink-mute);transition:color .3s;letter-spacing:1px;}
+          #lumo-pipeline .pip-lat-seg.done{color:#8a5a15}
+          #lumo-pipeline .pip-lat.alert .pip-lat-seg.done{color:#993a2c}
+          #lumo-pipeline .pip-row{display:flex;align-items:stretch;gap:0;margin-bottom:0}
+          #lumo-pipeline .pip-branch-connector{display:flex;align-items:center;justify-content:center;position:relative}
+          #lumo-pipeline .pip-branch-line{width:24px;height:1.5px;background:var(--rule);position:relative;border-radius:2px;}
+          #lumo-pipeline .pip-branch-fill{position:absolute;top:0;height:100%;width:0%;transition:width .24s ease;background:var(--sun);border-radius:2px;}
+          #lumo-pipeline .pip-branch-fill.right{left:0}
+          #lumo-pipeline .pip-branch-fill.left{right:0}
+          #lumo-pipeline .pip-branch-head{position:absolute;top:50%;transform:translateY(-50%);width:0;height:0;transition:border-color .24s ease}
+          #lumo-pipeline .pip-branch-head.right{right:-1px;border-top:3px solid transparent;border-bottom:3px solid transparent;border-left:5px solid var(--rule)}
+          #lumo-pipeline .pip-branch-head.left{left:-1px;border-top:3px solid transparent;border-bottom:3px solid transparent;border-right:5px solid var(--rule)}
+          #lumo-pipeline .pip-branch-connector.to-esc .pip-branch-fill.right{width:100%;background:var(--coral)}
+          #lumo-pipeline .pip-branch-connector.to-esc .pip-branch-head.right{border-left-color:var(--coral)}
+          #lumo-pipeline .pip-branch-connector.to-safe .pip-branch-fill.left{width:100%;background:var(--sun)}
+          #lumo-pipeline .pip-branch-connector.to-safe .pip-branch-head.left{border-right-color:var(--sun)}
+          #lumo-pipeline .pip-branch-label{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-mute);text-align:center;margin-bottom:6px}
+
+          /* ─── Mobile pipeline (≤640px) ─── */
+          @media (max-width:640px){
+            #lumo-pipeline{padding:18px 14px;border-radius:16px}
+            #lumo-pipeline .pip-row{flex-direction:column;gap:0}
+            #lumo-pipeline .pip-node{padding:12px;border-radius:12px;min-width:0}
+            #lumo-pipeline .pip-label{font-size:13px}
+            #lumo-pipeline .pip-desc{font-size:10px}
+            #lumo-pipeline .pip-over{font-size:8px;letter-spacing:1.4px}
+            #lumo-pipeline .pip-badge{font-size:7px;padding:2px 6px}
+            #lumo-pipeline .pip-dot{width:6px;height:6px;margin-right:4px}
+
+            /* ── Uniform vertical arrow for ALL connectors ── */
+
+            /* In-row horizontal arrows → hide internals, match pip-wrap-link style */
+            #lumo-pipeline .h-arrow{
+              width:100%;height:32px;flex-shrink:0;
+              transform:none;
+              margin:4px 0;
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              position:relative;
+            }
+            #lumo-pipeline .h-arrow-line{display:none}
+            #lumo-pipeline .h-arrow-head{display:none}
+            #lumo-pipeline .h-arrow::before{
+              content:'';display:block;width:1.5px;height:18px;
+              background:var(--rule);transition:background .3s;
+            }
+            #lumo-pipeline .h-arrow::after{
+              content:'';display:block;width:0;height:0;
+              border-left:4px solid transparent;border-right:4px solid transparent;
+              border-top:5px solid var(--rule);transition:border-top-color .3s;
+            }
+            #lumo-pipeline .h-arrow.lit::before{background:var(--sun)}
+            #lumo-pipeline .h-arrow.lit::after{border-top-color:var(--sun)}
+
+            /* Between-row SVG curves → hide SVG, replace with CSS arrow */
+            #lumo-pipeline .pip-wrap-link{
+              height:32px;margin:4px 0;position:relative;
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+            }
+            #lumo-pipeline .pip-wrap-link svg{display:none}
+            #lumo-pipeline .pip-wrap-link::before{
+              content:'';display:block;width:1.5px;height:18px;
+              background:var(--rule);transition:background .3s;
+            }
+            #lumo-pipeline .pip-wrap-link::after{
+              content:'';display:block;width:0;height:0;
+              border-left:4px solid transparent;border-right:4px solid transparent;
+              border-top:5px solid var(--rule);transition:border-top-color .3s;
+            }
+            /* Animation states for CSS arrows */
+            #lumo-pipeline .pip-wrap-link.lit::before{background:var(--sun)}
+            #lumo-pipeline .pip-wrap-link.lit::after{border-top-color:var(--sun)}
+            #lumo-pipeline .pip-wrap-link.alert::before{background:var(--coral)}
+            #lumo-pipeline .pip-wrap-link.alert::after{border-top-color:var(--coral)}
+
+            /* ── Branch grid: stack vertically ── */
+            #lumo-pipeline .pip-branch-label{font-size:8px;letter-spacing:1px;margin-bottom:4px}
+            #lumo-pipeline .pip-branch-grid{
+              display:flex!important;flex-direction:column;gap:0;margin:4px 0!important;
+            }
+            #lumo-pipeline .pip-branch-connector{
+              transform:rotate(90deg);height:24px;margin:4px auto;
+            }
+            #lumo-pipeline .pip-branch-line{width:20px}
+
+            /* ── Status / latency bar ── */
+            #lumo-pipeline .pip-status{padding:8px 10px;gap:6px;border-radius:10px}
+            #lumo-pipeline .pip-status-txt{font-size:11px}
+            #lumo-pipeline .pip-status-time{font-size:10px}
+            #lumo-pipeline .pip-lat-hd{font-size:8px}
+            #lumo-pipeline .pip-lat-seg{font-size:8px}
+            #lumo-pipeline .pip-play-btn{font-size:11px;padding:8px 18px;margin-bottom:18px}
+          }
+          </style>
+
+          <button class="pip-play-btn" id="pipBtn">▶ Run a turn</button>
+
+          <!-- ROW 1 -->
+          <div class="pip-row">
+            <div class="pip-node" id="pn-audio">
+              <span class="pip-dot"></span><span class="pip-over">Audio in</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">PCM stream</div>
+              <div class="pip-label">Mic capture</div>
+              <div class="pip-desc">Raw PCM chunks over WebSocket. Min ~2400 samples before commit.</div>
+            </div>
+            <div class="h-arrow" id="ha0"><div class="h-arrow-line"><div class="h-arrow-fill" id="hf0"></div></div><div class="h-arrow-head"></div></div>
+            <div class="pip-node" id="pn-vad">
+              <span class="pip-dot"></span><span class="pip-over">VAD</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">Semantic</div>
+              <div class="pip-label">Speech detection</div>
+              <div class="pip-desc">speech_started / speech_stopped. 300ms stability window.</div>
+            </div>
+            <div class="h-arrow" id="ha1"><div class="h-arrow-line"><div class="h-arrow-fill" id="hf1"></div></div><div class="h-arrow-head"></div></div>
+            <div class="pip-node" id="pn-stt">
+              <span class="pip-dot"></span><span class="pip-over">STT</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">Realtime</div>
+              <div class="pip-label">Transcription</div>
+              <div class="pip-desc">Partials merged. Local IDs aliased to server item IDs.</div>
+            </div>
+          </div>
+
+          <div class="pip-wrap-link" id="vf0" style="--path-length:900">
+            <svg class="pip-wrap-svg" viewBox="0 0 1120 80" preserveAspectRatio="none" aria-hidden="true">
+              <path class="pip-wrap-base" d="M941 2 C941 15 931 32 915 32 L300 32 C284 32 274 45 274 65"></path>
+              <path class="pip-wrap-fill" d="M941 2 C941 15 931 32 915 32 L300 32 C284 32 274 45 274 65"></path>
+              <polygon class="pip-wrap-arrow" points="274,72 269,62 279,62"></polygon>
+            </svg>
+          </div>
+
+          <!-- ROW 2 -->
+          <div class="pip-row">
+            <div class="pip-node" id="pn-policy">
+              <span class="pip-dot"></span><span class="pip-over">Safety</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">Deterministic</div>
+              <div class="pip-label">Policy engine</div>
+              <div class="pip-desc">Hard-block · age-band · dependency language · harm detection.</div>
+            </div>
+            <div class="h-arrow" id="ha2"><div class="h-arrow-line"><div class="h-arrow-fill" id="hf2"></div></div><div class="h-arrow-head"></div></div>
+            <div class="pip-node" id="pn-claim">
+              <span class="pip-dot"></span><span class="pip-over">Gate</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">At-most-once</div>
+              <div class="pip-label">Response claim</div>
+              <div class="pip-desc">Written against (session_id, turn_id). Duplicates dropped.</div>
+            </div>
+          </div>
+
+          <div class="pip-wrap-link" id="vf2" style="--path-length:900">
+            <svg class="pip-wrap-svg" viewBox="0 0 1120 80" preserveAspectRatio="none" aria-hidden="true">
+              <path class="pip-wrap-base" d="M846 2 C846 15 836 32 820 32 L300 32 C284 32 274 45 274 65"></path>
+              <path class="pip-wrap-fill" d="M846 2 C846 15 836 32 820 32 L300 32 C284 32 274 45 274 65"></path>
+              <polygon class="pip-wrap-arrow" points="274,72 269,62 279,62"></polygon>
+            </svg>
+          </div>
+
+          <div class="pip-branch-grid" style="display:grid;grid-template-columns:1fr 24px 1fr;margin:10px 0 10px">
+            <div>
+              <div class="pip-branch-label">Safe path</div>
+              <div class="pip-node branch-node" id="pn-safe">
+                <span class="pip-dot"></span><span class="pip-over">SAFE_OK</span>
+                <div class="pip-label">Proceed to LLM</div>
+                <div class="pip-desc">No flags raised. Generation continues normally.</div>
+              </div>
+            </div>
+            <div class="pip-branch-connector" id="branchLink">
+              <div class="pip-branch-line">
+                <div class="pip-branch-fill left" id="branchFillLeft"></div>
+                <div class="pip-branch-fill right" id="branchFillRight"></div>
+                <div class="pip-branch-head left"></div>
+                <div class="pip-branch-head right"></div>
+              </div>
+            </div>
+            <div>
+              <div class="pip-branch-label">Escalate path</div>
+              <div class="pip-node branch-node" id="pn-esc">
+                <span class="pip-dot"></span><span class="pip-over">SAFE_ESCALATE</span>
+                <div class="pip-label">Parent notified</div>
+                <div class="pip-desc">Summary queued. Child redirected gracefully.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pip-wrap-link" id="vf1" style="--path-length:900">
+            <svg class="pip-wrap-svg" viewBox="0 0 1120 80" preserveAspectRatio="none" aria-hidden="true">
+              <path class="pip-wrap-base" d="M274 2 C274 15 264 32 248 32 L157 32 C141 32 131 45 131 65"></path>
+              <path class="pip-wrap-fill" d="M274 2 C274 15 264 32 248 32 L157 32 C141 32 131 45 131 65"></path>
+              <polygon class="pip-wrap-arrow" points="131,72 126,62 136,62"></polygon>
+            </svg>
+          </div>
+
+          <!-- ROW 3 -->
+          <div class="pip-row">
+            <div class="pip-node" id="pn-llm">
+              <span class="pip-dot"></span><span class="pip-over">LLM</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">OpenAI</div>
+              <div class="pip-label">Generation</div>
+              <div class="pip-desc">Transcript to prompt. Sanitized: *actions* stripped. Telemetry emitted.</div>
+            </div>
+            <div class="h-arrow" id="ha4"><div class="h-arrow-line"><div class="h-arrow-fill" id="hf4"></div></div><div class="h-arrow-head"></div></div>
+            <div class="pip-node" id="pn-safety">
+              <span class="pip-dot"></span><span class="pip-over">Safety Filter</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">Post-gen</div>
+              <div class="pip-label">Retention check</div>
+              <div class="pip-desc">Scans output for engagement-bait patterns. Triggers LLM retry if detected.</div>
+            </div>
+            <div class="h-arrow" id="ha5"><div class="h-arrow-line"><div class="h-arrow-fill" id="hf5"></div></div><div class="h-arrow-head"></div></div>
+            <div class="pip-node" id="pn-tts">
+              <span class="pip-dot"></span><span class="pip-over">TTS</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">MP3 chunks</div>
+              <div class="pip-label">Speech synthesis</div>
+              <div class="pip-desc">assistant_audio_chunk to assistant_audio_end. TTS_START / TTS_DONE markers.</div>
+            </div>
+            <div class="h-arrow" id="ha6"><div class="h-arrow-line"><div class="h-arrow-fill" id="hf6"></div></div><div class="h-arrow-head"></div></div>
+            <div class="pip-node" id="pn-play">
+              <span class="pip-dot"></span><span class="pip-over">Output</span>
+              <div style="position:absolute;top:9px;right:9px" class="pip-badge">Child hears</div>
+              <div class="pip-label">Audio playback</div>
+              <div class="pip-desc">Autoplay with unlock overlay fallback. Word reveal synced to audio events.</div>
+            </div>
+          </div>
+
+          <div class="pip-status">
+            <div class="pip-status-dot" id="pipDot"></div>
+            <div class="pip-status-txt" id="pipTxt">Idle · click Run a turn to simulate</div>
+            <div class="pip-status-time" id="pipTime"></div>
+          </div>
+
+          <div class="pip-lat" id="pipLat">
+            <div class="pip-lat-hd"><span>Pipeline latency</span><span id="pipLatTotal" style="color:var(--ink-mute)"></span></div>
+            <div class="pip-lat-bar"><div class="pip-lat-fill" id="pipLatFill"></div></div>
+            <div class="pip-lat-segs">
+              <div class="pip-lat-seg" id="ls0">STT</div>
+              <div class="pip-lat-seg" id="ls1">POLICY</div>
+              <div class="pip-lat-seg" id="ls2">LLM</div>
+              <div class="pip-lat-seg" id="ls3">TTS</div>
+            </div>
+          </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Privacy & Safety ─── -->
+  <section class="scroll-reveal bg-paper-2 py-24 md:py-32 border-y border-rule" id="privacy">
+    <div class="max-w-[1200px] mx-auto px-6 md:px-10">
+      <div class="max-w-[820px] mb-16">
+        <p class="eyebrow mb-4">Privacy &amp; Safety</p>
+        <h2 class="font-display text-[40px] md:text-[72px] font-medium text-ink leading-[0.98] mb-6">Built with <em style="font-style:italic;">limits,</em><br/>not as an afterthought.</h2>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+
+        <div class="card p-8 stagger-item">
+          <div class="w-12 h-12 rounded-full mb-5 flex items-center justify-center" style="background:var(--sun-soft);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#8a5a15" stroke-width="1.6"/><path d="M4 20 L20 4" stroke="#8a5a15" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h4 class="font-display text-[22px] font-medium text-ink mb-2">No audio stored</h4>
+          <p class="text-[14.5px] text-ink-soft leading-[1.6]">Your child's voice is processed in real time. We do not store recordings. Audio is discarded after each turn.</p>
+        </div>
+
+        <div class="card p-8 stagger-item">
+          <div class="w-12 h-12 rounded-full mb-5 flex items-center justify-center" style="background:#D9EDEB;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3 L20 7 V13 C20 17.5 16.5 20.5 12 21 C7.5 20.5 4 17.5 4 13 V7 Z" stroke="#2a5f5a" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12 L11 14 L15 10" stroke="#2a5f5a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4 class="font-display text-[22px] font-medium text-ink mb-2">Age-appropriate guardrails on every response</h4>
+          <p class="text-[14.5px] text-ink-soft leading-[1.6]">You set your child's age band. Topics outside what's appropriate for children are blocked, not filtered after the fact, but prevented from appearing at all.</p>
+        </div>
+
+        <div class="card p-8 stagger-item">
+          <div class="w-12 h-12 rounded-full mb-5 flex items-center justify-center" style="background:#FADAD5;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 20 V5 L18 8 L5 12" stroke="#993a2c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h4 class="font-display text-[22px] font-medium text-ink mb-2">Sensitive topics are flagged, not silently handled</h4>
+          <p class="text-[14.5px] text-ink-soft leading-[1.6]">If your child raises something that warrants a parent's attention, Lumo redirects the conversation and notes it in your session summary.</p>
+        </div>
+
+        <div class="card p-8 stagger-item">
+          <div class="w-12 h-12 rounded-full mb-5 flex items-center justify-center" style="background:var(--sun-soft);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="#8a5a15" stroke-width="1.6"/><path d="M12 9 V13 L15 15" stroke="#8a5a15" stroke-width="1.6" stroke-linecap="round"/><path d="M9 3 H15" stroke="#8a5a15" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h4 class="font-display text-[22px] font-medium text-ink mb-2">Sessions are time-limited</h4>
+          <p class="text-[14.5px] text-ink-soft leading-[1.6]">You set the maximum session length. When time is up, the session ends. Lumo does not prompt children to continue or come back.</p>
+        </div>
+
+        <div class="card p-8 stagger-item">
+          <div class="w-12 h-12 rounded-full mb-5 flex items-center justify-center" style="background:#D9EDEB;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2" stroke="#2a5f5a" stroke-width="1.6"/><path d="M8 10 V7 a4 4 0 0 1 8 0 V10" stroke="#2a5f5a" stroke-width="1.6"/><circle cx="12" cy="15" r="1.5" fill="#2a5f5a"/></svg>
+          </div>
+          <h4 class="font-display text-[22px] font-medium text-ink mb-2">A PIN-protected parent space</h4>
+          <p class="text-[14.5px] text-ink-soft leading-[1.6]">Your settings, session history, and safety event log are behind a PIN only you control.</p>
+        </div>
+
+        <div class="card p-8 stagger-item">
+          <div class="w-12 h-12 rounded-full mb-5 flex items-center justify-center" style="background:#FADAD5;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3 L13.5 10 L21 12 L13.5 14 L12 21 L10.5 14 L3 12 L10.5 10 Z" stroke="#993a2c" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </div>
+          <h4 class="font-display text-[22px] font-medium text-ink mb-2">No engagement manipulation</h4>
+          <p class="text-[14.5px] text-ink-soft leading-[1.6]">Lumo never prompts your child to return. No streaks, no notifications, no features designed to increase usage.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Parent Controls ─── -->
+  <section class="scroll-reveal py-24 md:py-32 px-6 md:px-10" id="parent-controls">
+    <div class="max-w-[1200px] mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+        <div class="lg:col-span-5 lg:sticky lg:top-28">
+          <p class="eyebrow mb-4">Parent controls</p>
+          <h2 class="font-display text-[40px] md:text-[56px] font-medium text-ink leading-[1.02] mb-6">You set the <em style="font-style:italic;">rules</em>. Lumo follows them.</h2>
+          <p class="text-[17px] text-ink-soft leading-[1.6] mb-8">Every control that matters, none that don't. Lumo gives you real visibility without requiring you to hover.</p>
+          <div class="flex items-center gap-3 p-4 rounded-2xl" style="background:var(--sun-soft); border:1px solid #F3C06D;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;"><path d="M12 3 L4 7 V13 C4 17.5 7.5 20.5 12 21 C16.5 20.5 20 17.5 20 13 V7 Z" stroke="#8a5a15" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            <p class="text-[14px] text-[#8a5a15] leading-relaxed">All settings are protected behind a PIN only you know.</p>
+          </div>
+        </div>
+        <div class="lg:col-span-7 space-y-3">
+
+          <div class="card p-6 flex items-start gap-5" style="background:var(--card);">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--sun-soft);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="#8a5a15" stroke-width="1.6"/><path d="M12 9 V13 L15 15" stroke="#8a5a15" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between gap-4 mb-1 flex-wrap">
+                <h4 class="font-display text-[20px] font-medium text-ink">Session duration</h4>
+                <span class="font-mono text-[11px] text-ink-mute">default · 15 min</span>
+              </div>
+              <p class="text-[14.5px] text-ink-soft leading-[1.6]">You set how long each session runs. It ends at that limit.</p>
+            </div>
+          </div>
+
+          <div class="card p-6 flex items-start gap-5" style="background:var(--card);">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background:#D9EDEB;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4 L20 8 L12 12 L4 8 Z" stroke="#2a5f5a" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 12 L12 16 L20 12" stroke="#2a5f5a" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 16 L12 20 L20 16" stroke="#2a5f5a" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between gap-4 mb-1 flex-wrap">
+                <h4 class="font-display text-[20px] font-medium text-ink">Age band</h4>
+                <div class="flex items-center gap-1">
+                  <span class="tag" style="font-size:11px;">4–6</span>
+                  <span class="tag" style="font-size:11px; background:var(--sun-soft); border-color:#F3C06D; color:#8a5a15;">7–9</span>
+                  <span class="tag" style="font-size:11px;">10–12</span>
+                </div>
+              </div>
+              <p class="text-[14.5px] text-ink-soft leading-[1.6]">Tells Lumo how to calibrate its language and what content is appropriate.</p>
+            </div>
+          </div>
+
+          <div class="card p-6 flex items-start gap-5" style="background:var(--card);">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--sun-soft);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6 H20 M4 12 H20 M4 18 H14" stroke="#8a5a15" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between gap-4 mb-1 flex-wrap">
+                <h4 class="font-display text-[20px] font-medium text-ink">Session history</h4>
+                <span class="font-mono text-[11px] text-ink-mute">plain-language</span>
+              </div>
+              <p class="text-[14.5px] text-ink-soft leading-[1.6]">Plain-language summaries of past sessions.</p>
+            </div>
+          </div>
+
+          <div class="card p-6 flex items-start gap-5" style="background:var(--card);">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background:#FADAD5;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 21 V4 M5 4 L13 6 L19 5 V13 L13 14 L5 13" stroke="#993a2c" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between gap-4 mb-1 flex-wrap">
+                <h4 class="font-display text-[20px] font-medium text-ink">Safety event log</h4>
+                <span class="font-mono text-[11px] text-ink-mute">auditable</span>
+              </div>
+              <p class="text-[14.5px] text-ink-soft leading-[1.6]">A record of any flagged moments and how they were handled.</p>
+            </div>
+          </div>
+
+          <div class="card p-6 flex items-start gap-5" style="background:var(--card);">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background:#D9EDEB;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#2a5f5a" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="#2a5f5a"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between gap-4 mb-1 flex-wrap">
+                <h4 class="font-display text-[20px] font-medium text-ink">Availability</h4>
+                <span class="font-mono text-[11px] text-ink-mute">never background</span>
+              </div>
+              <p class="text-[14.5px] text-ink-soft leading-[1.6]">Lumo is only active when you allow it. It does not run in the background.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Who Is Lumo For ─── -->
+  <section class="scroll-reveal bg-paper-2 border-y border-rule py-24 md:py-32 px-6 md:px-10" id="who-its-for">
+    <div class="max-w-[1200px] mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <div>
+          <p class="eyebrow mb-4">Who is Lumo for?</p>
+          <h2 class="font-display text-[40px] md:text-[64px] font-medium text-ink leading-[1.02] mb-6">Children<br/><span style="font-style:italic;">ages 4–12.</span></h2>
+          <p class="text-[17px] text-ink-soft leading-[1.6] mb-8">Responses adapt to the age band you set. Lumo may be useful if your child:</p>
+          <ul class="space-y-4">
+            <li class="flex items-start gap-4">
+              <span class="ledger-mark mark-yes" style="margin-top:2px;">✓</span>
+              <span class="text-[16px] text-ink-soft leading-[1.55]">Asks a lot of questions and you'd like a way to let them explore ideas safely</span>
+            </li>
+            <li class="flex items-start gap-4">
+              <span class="ledger-mark mark-yes" style="margin-top:2px;">✓</span>
+              <span class="text-[16px] text-ink-soft leading-[1.55]">Could benefit from a structured, time-limited voice interaction during downtime</span>
+            </li>
+            <li class="flex items-start gap-4">
+              <span class="ledger-mark mark-yes" style="margin-top:2px;">✓</span>
+              <span class="text-[16px] text-ink-soft leading-[1.55]">Is in an environment (home, travel, waiting) where a brief, bounded activity is helpful</span>
+            </li>
+          </ul>
+        </div>
+        <div class="card p-9" style="background:var(--card);">
+          <p class="eyebrow mb-5" style="color:var(--coral); letter-spacing:0.16em;">A clear boundary</p>
+          <p class="font-display text-[22px] md:text-[26px] font-medium text-ink leading-[1.35] mb-7">
+            It is not designed to fill emotional gaps, substitute for adult interaction, or give children a place to form attachments.
+          </p>
+          <div class="pl-6" style="border-left:3px solid var(--coral);">
+            <p class="text-[15px] text-ink-soft leading-[1.65] italic">
+              "Lumo is an app with defined limits. It is not equipped to handle emotional crises, provide advice, or substitute for a parent, teacher, counsellor, or other trusted adult."
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Why We Built Lumo ─── -->
+  <section class="scroll-reveal py-24 md:py-32 px-6 md:px-10" id="why-lumo">
+    <div class="max-w-[820px] mx-auto text-center">
+      <p class="eyebrow mb-5">Why we built Lumo</p>
+      <h2 class="font-display text-[40px] md:text-[56px] font-medium text-ink leading-[1.02] mb-10">We'd rather launch something <em style="font-style:italic;">honest</em> than launch fast.</h2>
+      <div class="space-y-6 text-left md:text-center">
+        <p class="text-[18px] text-ink-soft leading-[1.65]">
+          Most voice products weren't designed with children as the primary user. They were designed for adults and made available to kids, with the same engagement mechanics, the same always-on availability, and the same business models that reward time spent.
+        </p>
+        <p class="text-[18px] text-ink-soft leading-[1.65]">
+          Lumo is built differently. The goal is not to maximize sessions. There's no metric we're optimizing for that involves your child using Lumo more. We built it to be useful within clear boundaries, and to give parents real visibility into what's happening, not reassuring language and vague privacy promises.
+        </p>
+        <p class="font-display text-[22px] text-ink italic leading-[1.5] pt-4">
+          We're a small team building carefully.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FAQ ─── -->
+  <section class="scroll-reveal bg-paper-2 border-y border-rule py-24 md:py-32 px-6 md:px-10" id="faq">
+    <div class="max-w-[820px] mx-auto">
+      <div class="mb-14 text-center">
+        <p class="eyebrow mb-4">FAQ</p>
+        <h2 class="font-display text-[40px] md:text-[56px] font-medium text-ink leading-[1.02]">Frequently asked <span style="font-style:italic;">questions.</span></h2>
+      </div>
+      <div id="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">Does Lumo record my child's voice?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">No. Audio is processed in real time and immediately discarded. We do not store voice recordings.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">Can I see what my child talked about?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">You receive a plain-language session summary after each conversation, not a full transcript, but a clear account of topics covered and anything flagged.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">What age is Lumo designed for?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">Ages 4 to 12, approximately. You set your child's age band, and Lumo calibrates its language and content limits to match.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">What happens if my child brings up something inappropriate or worrying?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">Lumo's guardrails prevent certain responses from being generated at all. If a topic arises that warrants a parent's attention, Lumo redirects the conversation and flags it in your session summary.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">Is Lumo trying to get my child to use it more?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">No. There are no streaks, rewards, notifications, or features designed to build habits or increase usage. Sessions are time-limited. When the session ends, it ends.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">Is there a screen involved?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">The child-facing experience is voice-only. There is a parent-facing interface for settings, session history, and safety events, but no screen content is served to the child.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">How long are sessions?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">You decide. You set the maximum session length, and the session ends at that limit.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">Is Lumo a replacement for talking to me or another trusted adult?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">No. Lumo is an app with defined limits. It is not equipped to handle emotional crises, provide advice, or substitute for a parent, teacher, counsellor, or other trusted adult. If your child needs real support, Lumo is not the right place for that.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">What does Lumo not do?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">Lumo does not store audio, build engagement habits, give advice, act as an emotional support app, run in the background, or operate without parent-configured limits.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question w-full text-left" aria-expanded="false">
+            <span class="font-display text-[19px] font-medium text-ink leading-snug pr-6">Is Lumo free?</span>
+            <span class="faq-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
+          </button>
+          <div class="faq-answer">
+            <p class="text-[15px] text-ink-soft leading-[1.65] pb-6 pr-12">Pricing hasn't been announced yet. Join the waitlist and we'll share full details before launch.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Waitlist CTA ─── -->
+  <section class="scroll-reveal py-24 md:py-32 px-6 md:px-10" id="waitlist" style="scroll-margin-top: 96px;">
+    <div class="max-w-[720px] mx-auto relative">
+      <div aria-hidden="true" style="position:absolute; left:50%; top:-50px; transform:translateX(-50%); width:200px; height:200px; border-radius:50%; background:radial-gradient(circle, #FCE0A9 0%, transparent 70%); filter:blur(8px);"></div>
+
+      <div class="relative card p-10 md:p-14" style="background:var(--card); border-radius:28px;">
+        <div class="text-center mb-10">
+          <div class="mx-auto mb-8" style="width:72px; height:72px; position:relative;">
+            <div style="position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 38% 32%, #FFFDF7 0%, #FFE0A0 30%, #F4B24A 70%, #D88E2C 100%); box-shadow: inset -6px -10px 20px rgba(216,142,44,0.4), inset 6px 6px 14px rgba(255,253,247,0.6);"></div>
+          </div>
+          <p class="eyebrow mb-4">Be the first to know</p>
+          <h2 class="font-display text-[36px] md:text-[46px] font-medium text-ink leading-[1.05] mb-4">Lumo isn't available yet.</h2>
+          <p class="text-[16px] text-ink-soft leading-[1.6] max-w-md mx-auto">We're opening access to a small group first. One email when we're ready. No newsletters. No follow-ups.</p>
+        </div>
+        <form id="waitlist-form" class="space-y-4">
+          <div>
+            <label class="block eyebrow mb-3" for="email-input" style="font-size:11px;">Email address</label>
+            <input id="email-input" class="email-input" type="email" required placeholder="you@example.com" autocomplete="email"/>
+          </div>
+          <button id="waitlist-submit" type="submit" class="btn-sun w-full !py-4 !text-[16px]">
+            Get early access
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+        <p class="text-[12px] text-ink-mute text-center mt-6">We ask for parental consent at signup. COPPA-compliant.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ─── Footer ─── -->
+<footer class="w-full py-16 bg-paper-3" style="border-top:1px solid var(--rule);">
+  <div class="max-w-[1200px] mx-auto px-6 md:px-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+      <div class="space-y-4 max-w-sm">
+        <div class="flex items-center gap-2">
+          <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+            <defs>
+              <radialGradient id="logoGF" cx="38%" cy="32%">
+                <stop offset="0%" stop-color="#FFFDF7"/>
+                <stop offset="45%" stop-color="#FFE0A0"/>
+                <stop offset="100%" stop-color="#F4B24A"/>
+              </radialGradient>
+            </defs>
+            <circle cx="13" cy="13" r="10" fill="url(#logoGF)" stroke="#1E1A14" stroke-width="1.2"/>
+            <circle cx="10" cy="10.5" r="1.6" fill="#1E1A14"/>
+          </svg>
+          <span class="text-[22px] font-display font-semibold text-ink">Lumo<span class="caret">.</span></span>
+        </div>
+        <p class="text-ink-soft text-[14.5px] leading-[1.6]">A parent-controlled app for children. Privacy and safety are not features: they are the baseline.</p>
+        <div class="text-[13px] text-ink-mute">© 2025 Lumo. All rights reserved.</div>
+      </div>
+      <div class="grid grid-cols-2 gap-8">
+        <div class="flex flex-col gap-3">
+          <p class="eyebrow mb-1" style="font-size:11px;">Legal</p>
+          <a class="text-[14px] text-ink-soft hover:text-ink transition-colors" href="#">Privacy Policy</a>
+          <a class="text-[14px] text-ink-soft hover:text-ink transition-colors" href="#">Terms of Service</a>
+        </div>
+        <div class="flex flex-col gap-3">
+          <p class="eyebrow mb-1" style="font-size:11px;">Company</p>
+          <a class="text-[14px] text-ink-soft hover:text-ink transition-colors" href="#">Contact</a>
+          <a class="text-[14px] text-ink-soft hover:text-ink transition-colors" href="#waitlist">Waitlist</a>
+        </div>
+      </div>
+    </div>
+    <div class="pt-8 border-t border-rule flex flex-col md:flex-row md:justify-between items-start gap-3 text-[12px] text-ink-mute">
+      <span>Designed for COPPA compliance. Parental consent required at signup. No data sold.</span>
+      <span class="font-mono">v0.1 · built carefully</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Hamburger menu
+  (function() {
+    const btn   = document.getElementById('hamburger');
+    const menu  = document.getElementById('mobile-menu');
+    const bars  = btn.querySelectorAll('.ham-bar');
+    let open = false;
+
+    function toggleMenu(force) {
+      open = force !== undefined ? force : !open;
+      btn.setAttribute('aria-expanded', open);
+      if (open) {
+        menu.style.maxHeight = menu.scrollHeight + 300 + 'px';
+        menu.style.opacity = '1';
+        bars[0].style.transform = 'translateY(6.5px) rotate(45deg)';
+        bars[1].style.opacity = '0';
+        bars[2].style.transform = 'translateY(-6.5px) rotate(-45deg)';
+      } else {
+        menu.style.maxHeight = '0';
+        menu.style.opacity = '0';
+        bars[0].style.transform = '';
+        bars[1].style.opacity = '';
+        bars[2].style.transform = '';
+      }
+    }
+
+    btn.addEventListener('click', () => toggleMenu());
+
+    // Close on any mobile nav link click
+    document.querySelectorAll('.mobile-nav-link, #mobile-menu .btn-sun').forEach(link => {
+      link.addEventListener('click', () => toggleMenu(false));
+    });
+  })();
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (href === '#') return;
+      const target = document.querySelector(href);
+      if (target) {
+        e.preventDefault();
+        const y = target.getBoundingClientRect().top + window.pageYOffset - 80;
+        window.scrollTo({ top:y, behavior:'smooth' });
+      }
+    });
+  });
+
+  // Scroll reveal
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        entry.target.querySelectorAll('.stagger-item').forEach((item, i) => {
+          setTimeout(() => { item.style.opacity = '1'; item.style.transform = 'translateY(0)'; }, i * 90);
+        });
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.scroll-reveal').forEach(el => {
+    if (el.id === 'hero') {
+      el.classList.add('visible');
+      el.querySelectorAll('.stagger-item').forEach((item, i) => {
+        setTimeout(() => { item.style.opacity = '1'; item.style.transform = 'translateY(0)'; }, i * 90);
+      });
+    } else {
+      revealObserver.observe(el);
+    }
+  });
+
+  // Scroll spy
+  const spyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('section[id]').forEach(s => spyObserver.observe(s));
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const btn = item.querySelector('.faq-question');
+    const answer = item.querySelector('.faq-answer');
+    btn.addEventListener('click', () => {
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => {
+        i.classList.remove('open');
+        i.querySelector('.faq-answer').classList.remove('open');
+        i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        answer.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  // Under the Hood toggle
+  (function() {
+    const toggle = document.getElementById('uth-toggle');
+    const panel  = document.getElementById('uth-panel');
+    const icon   = document.getElementById('uth-icon');
+    let open = false;
+    toggle.addEventListener('click', () => {
+      open = !open;
+      toggle.setAttribute('aria-expanded', open);
+      if (open) {
+        panel.style.maxHeight = panel.scrollHeight + 'px';
+        panel.style.opacity   = '1';
+        icon.style.transform  = 'rotate(180deg)';
+      } else {
+        panel.style.maxHeight = panel.scrollHeight + 'px';
+        requestAnimationFrame(() => {
+          panel.style.maxHeight = '0';
+          panel.style.opacity   = '0';
+        });
+        icon.style.transform = 'rotate(0deg)';
+      }
+    });
+    panel.addEventListener('transitionend', () => {
+      if (open) panel.style.maxHeight = 'none';
+    });
+  })();
+
+  // Pipeline widget
+  (function(){
+    const nodes = [
+      {id:'pn-audio',  status:'Ingesting PCM audio over WebSocket...'},
+      {id:'pn-vad',    status:'VAD detecting speech boundary...', hBefore:'ha0', hFill:'hf0'},
+      {id:'pn-stt',    status:'Transcribing, merging partials...', hBefore:'ha1', hFill:'hf1'},
+      {id:'pn-policy', status:'Running deterministic policy checks...', beforeConnector:'vf0'},
+      {id:'pn-claim',  status:'Locking response claim (at-most-once gate)...', hBefore:'ha2', hFill:'hf2'},
+      {id:'pn-safe',   status:'SAFE_OK, proceeding to LLM generation...', branch:true, beforeConnector:'vf2'},
+      {id:'pn-llm',    status:'LLM generating and sanitizing response...', beforeConnector:'vf1'},
+      {id:'pn-safety', status:'Scanning output for retention patterns...', hBefore:'ha4', hFill:'hf4', safetyScan:true},
+      {id:'pn-tts',    status:'TTS rendering MP3 chunks...', hBefore:'ha5', hFill:'hf5'},
+      {id:'pn-play',   status:'Streaming audio to child. Turn complete.', hBefore:'ha6', hFill:'hf6'},
+    ];
+    const latMap = {2:'ls0', 3:'ls1', 6:'ls2', 8:'ls3'};
+    const latPct = {2:22, 3:42, 6:72, 8:100};
+    const stepDelay = 620, transitionDelay = 550, branchDelay = 180, displayedTotalMs = 4200;
+    let running = false;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    function resetAll() {
+      nodes.forEach(n => { const el = document.getElementById(n.id); if(el) el.classList.remove('active','done','error'); });
+      ['hf0','hf1','hf2','hf4','hf5','hf6'].forEach(id => { const el=document.getElementById(id); if(el) el.style.width='0%'; });
+      ['vf0','vf1','vf2'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.remove('lit','alert'); });
+      ['ha0','ha1','ha2','ha4','ha5','ha6'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.remove('lit'); });
+      const bl=document.getElementById('branchLink'); if(bl) bl.classList.remove('to-esc','to-safe');
+      document.getElementById('pipDot').className='pip-status-dot';
+      document.getElementById('pipTxt').className='pip-status-txt';
+      document.getElementById('pipTxt').textContent='Idle · click Run a turn to simulate';
+      document.getElementById('pipTime').textContent='';
+      document.getElementById('pipLatFill').style.width='0%';
+      document.getElementById('pipLatTotal').textContent='';
+      document.getElementById('pipLat').classList.remove('alert');
+      ['ls0','ls1','ls2','ls3'].forEach(id => { document.getElementById(id).classList.remove('done'); });
+      const safe=document.getElementById('pn-safe'), esc=document.getElementById('pn-esc');
+      if(safe) safe.classList.remove('active','done','error');
+      if(esc)  esc.classList.remove('active','done','error');
+    }
+
+    function setStatus(txt, on) {
+      document.getElementById('pipDot').className='pip-status-dot'+(on?' on':'');
+      const s=document.getElementById('pipTxt'); s.className='pip-status-txt'+(on?' on':''); s.textContent=txt;
+    }
+
+    function setLatencyAlert(on) { document.getElementById('pipLat').classList.toggle('alert', on); }
+
+    function getDisplayedElapsed(startTime) {
+      return Math.round(displayedTotalMs * Math.min((Date.now()-startTime)/7200, 1));
+    }
+
+    async function advanceIncomingArrow(node) {
+      if (!node || !node.hBefore) return;
+      const hf=document.getElementById(node.hFill);
+      if(hf) await new Promise(r => requestAnimationFrame(() => { hf.style.width='100%'; r(); }));
+      const ha=document.getElementById(node.hBefore); if(ha) ha.classList.add('lit');
+      await wait(transitionDelay);
+    }
+
+    async function advanceIncomingConnector(node) {
+      if (!node || !node.beforeConnector) return;
+      const vf=document.getElementById(node.beforeConnector);
+      if(vf) await new Promise(r => requestAnimationFrame(() => { vf.classList.add('lit'); r(); }));
+      await wait(transitionDelay);
+    }
+
+    async function runBranchSequence() {
+      const safe=document.getElementById('pn-safe'), esc=document.getElementById('pn-esc'), bl=document.getElementById('branchLink');
+      safe.classList.add('active');
+      setStatus('SAFE_OK check returned false, rerouting to SAFE_ESCALATE...', true);
+      await wait(stepDelay);
+      safe.classList.remove('active'); safe.classList.add('error');
+      setLatencyAlert(true);
+      if(bl) { bl.classList.add('to-esc'); await wait(branchDelay); }
+      setStatus('SAFE_ESCALATE triggered, parent notification queued.', true);
+      await wait(stepDelay);
+      esc.classList.add('error'); await wait(stepDelay);
+      esc.classList.remove('error'); esc.classList.add('done');
+      if(bl) bl.classList.remove('to-esc');
+      await wait(transitionDelay);
+      safe.classList.remove('error'); safe.classList.add('active');
+      setLatencyAlert(false);
+      setStatus('SAFE_OK restored, proceeding to LLM generation...', true);
+      await wait(stepDelay);
+    }
+
+    async function runSafetyCheckSequence(el) {
+      el.classList.add('active');
+      setStatus('Scanning LLM output for retention-bait patterns...', true);
+      await wait(stepDelay);
+      el.classList.remove('active'); el.classList.add('error');
+      setLatencyAlert(true);
+      setStatus('Retention pattern detected, blocking response, retrying LLM...', true);
+      await wait(stepDelay);
+      const llmEl=document.getElementById('pn-llm');
+      if(llmEl) { llmEl.classList.remove('done'); llmEl.classList.add('active'); setStatus('LLM re-generating (retry #1)...', true); await wait(stepDelay); llmEl.classList.remove('active'); llmEl.classList.add('done'); }
+      setLatencyAlert(false);
+      el.classList.remove('error'); el.classList.add('active');
+      setStatus('Safety scan passed, clean response verified.', true);
+      await wait(stepDelay);
+      el.classList.remove('active'); el.classList.add('done');
+    }
+
+    async function runPipeline() {
+      if(running) return;
+      running=true;
+      resetAll();
+      const btn=document.getElementById('pipBtn');
+      btn.disabled=true; btn.textContent='● Running...';
+      const start=Date.now();
+      for(let i=0;i<nodes.length;i++) {
+        const n=nodes[i], el=document.getElementById(n.id);
+        if(!el) continue;
+        await advanceIncomingArrow(n);
+        await advanceIncomingConnector(n);
+        if(n.branch) { await runBranchSequence(); }
+        else if(n.safetyScan) { await runSafetyCheckSequence(el); }
+        else { el.classList.add('active'); setStatus(n.status, true); await wait(stepDelay); el.classList.remove('active'); el.classList.add('done'); }
+        document.getElementById('pipTime').textContent=(getDisplayedElapsed(start)/1000).toFixed(2)+'s';
+        if(latMap[i]) { document.getElementById(latMap[i]).classList.add('done'); document.getElementById('pipLatFill').style.width=latPct[i]+'%'; }
+      }
+      document.getElementById('pipTime').textContent=(displayedTotalMs/1000).toFixed(2)+'s';
+      document.getElementById('pipLatTotal').textContent=displayedTotalMs+'ms total';
+      setStatus('Turn complete. Parent summary queued.', false);
+      btn.disabled=false; btn.textContent='▶ Run again';
+      running=false;
+    }
+
+    const btn=document.getElementById('pipBtn');
+    if(btn) btn.addEventListener('click', runPipeline);
+  })();
+
+
+</script>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  // ⚠ PUBLIC credentials only — this anon key is safe to expose in client-side code.
+  // It grants only the permissions defined by your Supabase Row-Level Security (RLS)
+  // policies. Never place a service_role key or any secret here.
+  // Before launch, verify that RLS is enabled on the "waitlist" table and that
+  // policies restrict access to INSERT-only for anonymous users.
+  const SUPABASE_URL = 'https://lbzwvfgiwzqfdzyqetwm.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxiend2Zmdpd3pxZmR6eXFldHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDg0NDcsImV4cCI6MjA5MTI4NDQ0N30.yX5JR1a9eQRh7ud_XRqtSws88x19-FjE2fYryDLZrTM';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const form   = document.getElementById('waitlist-form');
+  const input  = document.getElementById('email-input');
+  const btn    = document.getElementById('waitlist-submit');
+
+  function showError(msg) {
+    let el = document.getElementById('waitlist-error');
+    if (!el) {
+      el = document.createElement('p');
+      el.id = 'waitlist-error';
+      el.style.cssText = 'margin-top:10px; font-size:13.5px; color:var(--coral); text-align:center;';
+      form.appendChild(el);
+    }
+    el.textContent = msg;
+  }
+
+  function clearError() {
+    const el = document.getElementById('waitlist-error');
+    if (el) el.textContent = '';
+  }
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const email = input.value.trim();
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRe.test(email)) {
+        showError('Please enter a valid email address.');
+        return;
+      }
+
+      btn.disabled = true;
+      input.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      const { error } = await supabase.from('waitlist').insert([{ email }]);
+
+      if (!error) {
+        btn.innerHTML = "You're on the list ✓";
+        btn.style.opacity = '0.75';
+        btn.style.cursor = 'not-allowed';
+      } else {
+        input.disabled = false;
+        btn.disabled = false;
+        btn.innerHTML = 'Get early access <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        if (error.code === '23505') {
+          showError('This email is already on the list.');
+        } else {
+          showError('Something went wrong. Please try again.');
+        }
+      }
+    });
+  }
+</script>
+</body>
+</html>

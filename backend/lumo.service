@@ -1,0 +1,15 @@
+[Unit]
+Description=Lumo Demo Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/lumo-demo/backend
+EnvironmentFile=/home/ubuntu/lumo-demo/backend/.env
+ExecStart=/home/ubuntu/lumo-demo/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
