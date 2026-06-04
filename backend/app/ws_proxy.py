@@ -69,6 +69,12 @@ TRANSCRIPTION_EVENTS = {
     "conversation.item.audio_transcription.completed",
 }
 
+# OpenAI error codes that are not actionable for the user — we log and drop them
+# instead of surfacing as fatal errors in the UI.
+BENIGN_OPENAI_ERROR_CODES = {
+    "response_cancel_not_active",
+}
+
 
 async def relay_client_to_openai(
     client_ws: WebSocket,
@@ -158,6 +164,12 @@ async def relay_openai_to_client(
                 err = event.get("error") if isinstance(event.get("error"), dict) else {}
                 message = err.get("message") or "openai error"
                 code = err.get("code") or err.get("type") or ""
+                # Benign races we deliberately swallow:
+                #   response_cancel_not_active — barge-in arrived after the
+                #   response had already completed; nothing to cancel.
+                if code in BENIGN_OPENAI_ERROR_CODES:
+                    log.info("[%s] swallowed benign openai error: %s", session_id, code)
+                    continue
                 log.error("[%s] openai error: code=%s message=%s", session_id, code, message)
                 await client_ws.send_text(
                     json.dumps(

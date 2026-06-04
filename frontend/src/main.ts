@@ -145,6 +145,7 @@ let timerInterval: number | null = null;
 let micActive = false;
 let currentSessionId: string | null = null;
 let lumoIsSpeaking = false;
+let responseInFlight = false; // OpenAI response lifecycle: created → done/cancelled
 let bargeInUntil = 0;
 let selectedDuration = DEFAULT_DURATION_S;
 
@@ -335,6 +336,7 @@ async function startSession(ageBand: string): Promise<void> {
   hideFatalError();
   currentSessionId = null;
   lumoIsSpeaking = false;
+  responseInFlight = false;
   bargeInUntil = 0;
 
   try {
@@ -363,8 +365,13 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     socket.onEvent("input_audio_buffer.speech_started", () => {
-      if (lumoIsSpeaking) {
+      // Only fire a cancel when OpenAI actually has a response in flight.
+      // (Late audio deltas can arrive after response.done; without this gate
+      // we'd send response.cancel against nothing and get the
+      // `response_cancel_not_active` benign-error.)
+      if (responseInFlight) {
         // ── BARGE-IN ──
+        responseInFlight = false;
         lumoIsSpeaking = false;
         bargeInUntil = Date.now() + 300;
         player?.flush();
@@ -413,9 +420,16 @@ async function startSession(ageBand: string): Promise<void> {
       }
     });
 
+    socket.onEvent("response.created", () => {
+      responseInFlight = true;
+    });
+
     socket.onEvent("response.output_audio.delta", (ev) => {
       if (Date.now() < bargeInUntil) return; // drop bleed after barge-in
       if (!player || !ev.delta) return;
+      // Only treat as "speaking" while a response is in flight. After
+      // response.done, late deltas (network buffer drain) are ignored.
+      if (!responseInFlight) return;
       if (!lumoIsSpeaking) {
         lumoIsSpeaking = true;
         hideThinkingIndicator();
@@ -429,12 +443,14 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     socket.onEvent("response.cancelled", () => {
+      responseInFlight = false;
       lumoIsSpeaking = false;
       hideThinkingIndicator();
       discardStreamingAssistantMessage();
     });
 
     socket.onEvent("response.done", (ev) => {
+      responseInFlight = false;
       lumoIsSpeaking = false;
       const status = ev?.response?.status;
       if (status === "cancelled") {
@@ -449,6 +465,7 @@ async function startSession(ageBand: string): Promise<void> {
 
     socket.onEvent("safe_redirect", (ev) => {
       player?.flush();
+      responseInFlight = false;
       lumoIsSpeaking = false;
       hideThinkingIndicator();
       clearLiveTranscript();
@@ -529,6 +546,7 @@ async function endSession(): Promise<void> {
   socket = null;
   player = null;
   lumoIsSpeaking = false;
+  responseInFlight = false;
   bargeInUntil = 0;
 
   const sid = currentSessionId;
@@ -577,6 +595,7 @@ function resetSession(): void {
   player = null;
   currentSessionId = null;
   lumoIsSpeaking = false;
+  responseInFlight = false;
   bargeInUntil = 0;
 
   resetTimeline();
