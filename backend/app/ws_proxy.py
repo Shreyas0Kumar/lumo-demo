@@ -155,11 +155,19 @@ async def relay_openai_to_client(
                 continue
 
             if etype == "error":
-                err = event.get("error") or {}
-                message = err.get("message") if isinstance(err, dict) else str(err)
-                log.error("[%s] openai error: %s", session_id, message)
+                err = event.get("error") if isinstance(event.get("error"), dict) else {}
+                message = err.get("message") or "openai error"
+                code = err.get("code") or err.get("type") or ""
+                log.error("[%s] openai error: code=%s message=%s", session_id, code, message)
                 await client_ws.send_text(
-                    json.dumps({"type": "error", "message": message or "openai error"})
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "source": "openai",
+                            "code": code,
+                            "message": message,
+                        }
+                    )
                 )
                 continue
 
@@ -192,7 +200,14 @@ async def proxy_session(client_ws: WebSocket, session_id: str, age_band: str) ->
     """Open an OpenAI Realtime WS and bidirectionally relay it to the client."""
     if not settings.OPENAI_API_KEY:
         await client_ws.send_text(
-            json.dumps({"type": "error", "message": "OPENAI_API_KEY not configured"})
+            json.dumps(
+                {
+                    "type": "error",
+                    "source": "backend",
+                    "code": "missing_api_key",
+                    "message": "OPENAI_API_KEY not configured",
+                }
+            )
         )
         return
 
@@ -215,7 +230,12 @@ async def proxy_session(client_ws: WebSocket, session_id: str, age_band: str) ->
         try:
             await client_ws.send_text(
                 json.dumps(
-                    {"type": "error", "message": f"upstream connection failed: {e}"}
+                    {
+                        "type": "error",
+                        "source": "backend",
+                        "code": "upstream_unreachable",
+                        "message": f"upstream connection failed: {e}",
+                    }
                 )
             )
         except Exception:

@@ -273,6 +273,49 @@ export function updateTimer(seconds: number): void {
   $("timer").textContent = `${m}:${r}`;
 }
 
+// Fatal error overlay
+export interface FatalErrorOpts {
+  title: string;
+  message: string;
+  detail?: string;
+  canRetry?: boolean;
+  onRetry?: () => void;
+}
+
+export function showFatalError(opts: FatalErrorOpts): void {
+  const banner = document.getElementById("fatal-error");
+  if (!banner) return;
+  (document.getElementById("fatal-title") as HTMLElement).textContent = opts.title;
+  (document.getElementById("fatal-message") as HTMLElement).textContent = opts.message;
+  const detailEl = document.getElementById("fatal-detail") as HTMLElement;
+  if (opts.detail) {
+    detailEl.textContent = opts.detail;
+    detailEl.style.display = "block";
+  } else {
+    detailEl.style.display = "none";
+  }
+  const retry = document.getElementById("fatal-retry") as HTMLButtonElement;
+  if (opts.canRetry && opts.onRetry) {
+    retry.style.display = "inline-flex";
+    retry.onclick = () => {
+      hideFatalError();
+      opts.onRetry!();
+    };
+  } else {
+    retry.style.display = "none";
+  }
+  const home = document.getElementById("fatal-home") as HTMLButtonElement;
+  home.onclick = () => {
+    window.location.href = "/";
+  };
+  banner.style.display = "flex";
+}
+
+export function hideFatalError(): void {
+  const banner = document.getElementById("fatal-error");
+  if (banner) banner.style.display = "none";
+}
+
 // Restore the empty state on reset.
 export function resetTimeline(): void {
   const timeline = $("timeline");

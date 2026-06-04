@@ -781,6 +781,22 @@
     </style>
   </head>
   <body>
+    <!-- ==================== Fatal error overlay ==================== -->
+    <div id="fatal-error" style="display:none; position:fixed; inset:0; background:rgba(251,246,236,0.97); backdrop-filter:blur(8px); z-index:200; align-items:center; justify-content:center; padding:24px;">
+      <div style="background:#FFFBF2; border:1px solid #E3D7BE; border-radius:20px; padding:40px; max-width:480px; width:100%; text-align:center; box-shadow:0 1px 0 rgba(30,26,20,0.04), 0 30px 60px -30px rgba(30,26,20,0.22);">
+        <div style="width:48px; height:48px; border-radius:50%; background:#FFEEEA; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px;">
+          <span style="color:#C0533F; font-size:24px; line-height:1;">⚠</span>
+        </div>
+        <h2 id="fatal-title" style="font-family:'Fraunces',ui-serif,Georgia,serif; font-variation-settings:'opsz' 144; font-size:24px; font-weight:600; color:#1E1A14; margin:0 0 12px; letter-spacing:-0.015em;">Something went wrong</h2>
+        <p id="fatal-message" style="color:#4A433A; font-size:15px; line-height:1.55; margin:0 0 12px;"></p>
+        <p id="fatal-detail" style="color:#8A8170; font-size:12px; font-family:'JetBrains Mono',monospace; margin:0 0 28px; word-break:break-word;"></p>
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <button id="fatal-retry" class="btn-primary" style="display:none;">Try again</button>
+          <button id="fatal-home" class="btn-ghost">Back to start</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== PIN gate ==================== -->
     <div id="pin-screen" class="screen active">
       <div id="pin-container">

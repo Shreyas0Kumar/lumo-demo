@@ -13,7 +13,7 @@ export class LumoSocket {
     this.duration = duration;
   }
 
-  connect(): Promise<void> {
+  connect(timeoutMs: number = 5000): Promise<void> {
     return new Promise((resolve, reject) => {
       const path = `/session/ws?age_band=${encodeURIComponent(this.ageBand)}&duration=${this.duration}`;
       let url: string;
@@ -25,13 +25,32 @@ export class LumoSocket {
       }
       this.ws = new WebSocket(url);
 
+      let settled = false;
+      const timeout = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        const err = new Error("connection_timeout");
+        (err as any).code = "connection_timeout";
+        this.emit("error", { message: "Backend unreachable", code: "connection_timeout" });
+        try { this.ws?.close(); } catch { /* ignore */ }
+        reject(err);
+      }, timeoutMs);
+
       this.ws.onopen = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
         this.emit("connected", {});
         resolve();
       };
-      this.ws.onerror = (e) => {
-        this.emit("error", { message: "Connection failed" });
-        reject(e);
+      this.ws.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        const err = new Error("connection_failed");
+        (err as any).code = "connection_failed";
+        this.emit("error", { message: "Connection failed", code: "connection_failed" });
+        reject(err);
       };
       this.ws.onclose = (ev) => {
         this.emit("disconnected", { code: ev.code, reason: ev.reason });

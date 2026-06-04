@@ -7,11 +7,13 @@ import {
   discardStreamingAssistantMessage,
   finalizeAssistantMessage,
   hideAgeGate,
+  hideFatalError,
   hideThinkingIndicator,
   replacePlaceholderUserMessage,
   resetTimeline,
   showAgeGate,
   showError,
+  showFatalError,
   showSafetyWarning,
   showScreen,
   showThinkingIndicator,
@@ -23,6 +25,114 @@ import { fetchSummary, renderSkeleton, renderSummary } from "./summary";
 import { LumoSocket } from "./ws";
 
 const DEFAULT_DURATION_S = 300;
+
+// ---------------- Error mapping ----------------
+
+interface FriendlyError {
+  title: string;
+  message: string;
+  detail?: string;
+  canRetry: boolean;
+}
+
+function mapMicError(e: unknown): FriendlyError {
+  const err = e as DOMException & { message?: string };
+  switch (err?.name) {
+    case "NotAllowedError":
+    case "PermissionDeniedError":
+      return {
+        title: "Microphone access needed",
+        message: "Lumo listens through your microphone. Please allow microphone access in your browser and try again.",
+        canRetry: false,
+      };
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return {
+        title: "No microphone found",
+        message: "Lumo couldn't find a microphone. Plug one in and try again.",
+        canRetry: true,
+      };
+    case "NotReadableError":
+    case "TrackStartError":
+      return {
+        title: "Microphone is in use",
+        message: "Another app is using your microphone. Close it and try again.",
+        canRetry: true,
+      };
+    case "SecurityError":
+      return {
+        title: "Insecure context",
+        message: "Lumo needs a secure (HTTPS) connection to access your microphone.",
+        canRetry: false,
+      };
+    default:
+      return {
+        title: "Microphone error",
+        message: err?.message || "Something went wrong with your microphone.",
+        canRetry: true,
+      };
+  }
+}
+
+function mapBackendError(ev: { code?: string; message?: string; source?: string }): FriendlyError {
+  const code = (ev.code || "").toLowerCase();
+  const m = (ev.message || "").toLowerCase();
+
+  if (code === "connection_timeout" || code === "connection_failed") {
+    return {
+      title: "Can't reach Lumo",
+      message: "Lumo's backend isn't responding. It may be offline or starting up. Try again in a moment.",
+      detail: ev.message,
+      canRetry: true,
+    };
+  }
+  if (code === "missing_api_key" || code === "invalid_api_key" || m.includes("api key") || m.includes("authentication") || m.includes("unauthorized")) {
+    return {
+      title: "Lumo is misconfigured",
+      message: "Lumo can't reach its voice service. The admin has been notified — please try again later.",
+      detail: ev.message,
+      canRetry: false,
+    };
+  }
+  if (code === "insufficient_quota" || m.includes("quota") || m.includes("billing")) {
+    return {
+      title: "Lumo is taking a break",
+      message: "Lumo's daily conversation limit has been reached. Please try again tomorrow.",
+      detail: ev.message,
+      canRetry: false,
+    };
+  }
+  if (code === "rate_limit_exceeded" || m.includes("rate limit") || m.includes("too many requests")) {
+    return {
+      title: "Lumo is popular right now",
+      message: "Lots of people are talking with Lumo at the same time. Wait a minute and try again.",
+      detail: ev.message,
+      canRetry: true,
+    };
+  }
+  if (code === "upstream_unreachable" || m.includes("upstream")) {
+    return {
+      title: "Lumo's voice service is down",
+      message: "Lumo can't connect to its voice service right now. Try again in a moment.",
+      detail: ev.message,
+      canRetry: true,
+    };
+  }
+  if (code === "server_error" || code === "internal_error" || m.includes("server error")) {
+    return {
+      title: "Lumo had a hiccup",
+      message: "Something went wrong on Lumo's side. Try again in a moment.",
+      detail: ev.message,
+      canRetry: true,
+    };
+  }
+  return {
+    title: "Something went wrong",
+    message: "Lumo ran into an unexpected error.",
+    detail: ev.message,
+    canRetry: true,
+  };
+}
 const PARTIAL_TRANSCRIPT_EVENTS = [
   "conversation.item.input_audio_transcription.delta",
   "conversation.item.audio_transcription.delta",
@@ -97,7 +207,13 @@ function init(): void {
 
 // ---------------- PIN gate ----------------
 
-const CORRECT_PIN = "6787";
+const CORRECT_PIN = (import.meta.env.VITE_DEMO_PIN as string | undefined) ?? "";
+if (!CORRECT_PIN) {
+  console.warn(
+    "[Lumo] VITE_DEMO_PIN is not set. The PIN gate will reject every entry. " +
+      "Set VITE_DEMO_PIN in frontend/.env (dev) or in the Cloudflare Pages dashboard (prod)."
+  );
+}
 let pinEntry = "";
 
 function initPinGate(): void {
@@ -147,7 +263,7 @@ function updatePinDots(): void {
 }
 
 function checkPin(): void {
-  if (pinEntry === CORRECT_PIN) {
+  if (CORRECT_PIN && pinEntry === CORRECT_PIN) {
     showScreen("landing"); // hides pin-screen; landing div doesn't exist on demo.html, harmless
     showAgeGate();
     pinEntry = "";
@@ -216,6 +332,7 @@ async function startSession(ageBand: string): Promise<void> {
 
   resetTimeline();
   showError("");
+  hideFatalError();
   currentSessionId = null;
   lumoIsSpeaking = false;
   bargeInUntil = 0;
@@ -232,8 +349,16 @@ async function startSession(ageBand: string): Promise<void> {
 
     socket.onEvent("disconnected", (ev) => {
       updateOrb("idle");
-      if (ev.code !== 1000 && ev.code !== 1005) {
-        showError(`Disconnected (${ev.code}). Refresh to try again.`);
+      stopTimer();
+      // Clean shutdowns: 1000 = normal, 1005 = no status, 1001 = going away
+      if (ev.code !== 1000 && ev.code !== 1005 && ev.code !== 1001) {
+        showFatalError({
+          title: "Connection lost",
+          message: "Lumo's connection dropped. Try starting a new session.",
+          detail: `code ${ev.code}${ev.reason ? ` · ${ev.reason}` : ""}`,
+          canRetry: true,
+          onRetry: () => void startSession(ageBand),
+        });
       }
     });
 
@@ -341,18 +466,54 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     socket.onEvent("error", (ev) => {
-      console.error("Lumo error:", ev.message);
-      showError(ev.message ?? "Unknown error");
+      console.error("Lumo error event:", ev);
+      const friendly = mapBackendError(ev);
+      stopTimer();
+      if (micActive) { stopMic(); micActive = false; }
+      socket?.disconnect();
+      showFatalError({
+        ...friendly,
+        onRetry: friendly.canRetry ? () => void startSession(ageBand) : undefined,
+      });
     });
 
-    await socket.connect();
-    await startMic((chunk: ArrayBuffer) => socket?.sendAudioChunk(chunk));
-    micActive = true;
+    try {
+      await socket.connect(5000);
+    } catch (e) {
+      console.error("Connect failed:", e);
+      const code = (e as { code?: string })?.code ?? "connection_failed";
+      const friendly = mapBackendError({ code, message: (e as Error).message });
+      showFatalError({
+        ...friendly,
+        onRetry: friendly.canRetry ? () => void startSession(ageBand) : undefined,
+      });
+      return;
+    }
+
+    try {
+      await startMic((chunk: ArrayBuffer) => socket?.sendAudioChunk(chunk));
+      micActive = true;
+    } catch (e) {
+      console.error("Mic failed:", e);
+      socket?.disconnect();
+      const friendly = mapMicError(e);
+      showFatalError({
+        ...friendly,
+        onRetry: friendly.canRetry ? () => void startSession(ageBand) : undefined,
+      });
+      return;
+    }
 
     startTimer(selectedDuration);
   } catch (e) {
     console.error(e);
-    showError(`Failed to start: ${(e as Error).message ?? e}`);
+    showFatalError({
+      title: "Couldn't start session",
+      message: "Something went wrong setting up your conversation.",
+      detail: (e as Error).message,
+      canRetry: true,
+      onRetry: () => void startSession(ageBand),
+    });
   }
 }
 
