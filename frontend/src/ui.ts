@@ -110,9 +110,32 @@ export function finalizeAssistantMessage(): void {
   liveAssistantBubble = null;
 }
 
-/** Drop the partially-streamed assistant bubble — used on barge-in / cancel. */
+/** Drop the partially-streamed assistant bubble — used on safe_redirect. */
 export function discardStreamingAssistantMessage(): void {
   document.getElementById("live-assistant-row")?.remove();
+  liveAssistantBubble = null;
+}
+
+/**
+ * Keep the partial assistant bubble visible but mark it as interrupted.
+ * Used on barge-in: the parent should still see what Lumo started to say,
+ * just clearly indicated that it was cut off.
+ */
+export function markAssistantInterrupted(): void {
+  const row = document.getElementById("live-assistant-row");
+  if (!row || !liveAssistantBubble) return;
+  // Trim trailing whitespace and append the cut indicator into the body.
+  const text = (liveAssistantBubble.textContent ?? "").replace(/\s+$/, "");
+  liveAssistantBubble.textContent = text ? text + " …" : "…";
+  // Italic muted hint underneath
+  const hint = document.createElement("span");
+  hint.style.cssText =
+    "display:block; margin-top:6px; font-size:11px; font-style:italic;" +
+    " color:var(--ink-mute); letter-spacing:0.02em;";
+  hint.textContent = "interrupted";
+  liveAssistantBubble.appendChild(hint);
+  // Finalize so further deltas / cancel acks can't attach to or remove this row.
+  row.removeAttribute("id");
   liveAssistantBubble = null;
 }
 

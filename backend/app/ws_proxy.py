@@ -42,9 +42,25 @@ def build_session_update(age_band: str) -> dict[str, Any]:
             "audio": {
                 "input": {
                     "format": {"type": "audio/pcm", "rate": 24000},
-                    "transcription": {"model": "whisper-1"},
+                    "transcription": {
+                        "model": "whisper-1",
+                        # Bias toward the kind of vocabulary a curious child
+                        # uses. Without this, Whisper happily turns "Voyager"
+                        # into "voice", "dinosaur" into "die-no-sir", etc.
+                        "prompt": (
+                            "A friendly conversation between a child and Lumo, "
+                            "a calm voice companion. Topics may include: space, "
+                            "planets, stars, the Sun, Moon, galaxies, the Voyager "
+                            "probes, Jupiter, Saturn, Mars, animals, dinosaurs, "
+                            "whales, octopus, science, the body, the brain, "
+                            "history, music, art, school, family, feelings, books."
+                        ),
+                    },
                     "turn_detection": {
                         "type": "server_vad",
+                        # Default-ish sensitivity. Echo cancellation is handled
+                        # client-side via getUserMedia constraints, so VAD
+                        # doesn't need to be desensitised here.
                         "threshold": 0.5,
                         "prefix_padding_ms": 300,
                         "silence_duration_ms": 600,

@@ -9,6 +9,7 @@ import {
   hideAgeGate,
   hideFatalError,
   hideThinkingIndicator,
+  markAssistantInterrupted,
   replacePlaceholderUserMessage,
   resetTimeline,
   showAgeGate,
@@ -148,6 +149,8 @@ let lumoIsSpeaking = false;
 let responseInFlight = false; // OpenAI response lifecycle: created → done/cancelled
 let bargeInUntil = 0;
 let selectedDuration = DEFAULT_DURATION_S;
+let sessionStartedAt = 0;
+let autoRetryUsed = false; // single chance to silently retry on dev hot-reload races
 
 // ---------------- DOM bindings ----------------
 
@@ -353,30 +356,63 @@ async function startSession(ageBand: string): Promise<void> {
       updateOrb("idle");
       stopTimer();
       // Clean shutdowns: 1000 = normal, 1005 = no status, 1001 = going away
-      if (ev.code !== 1000 && ev.code !== 1005 && ev.code !== 1001) {
-        showFatalError({
-          title: "Connection lost",
-          message: "Lumo's connection dropped. Try starting a new session.",
-          detail: `code ${ev.code}${ev.reason ? ` · ${ev.reason}` : ""}`,
-          canRetry: true,
-          onRetry: () => void startSession(ageBand),
-        });
+      const clean = ev.code === 1000 || ev.code === 1005 || ev.code === 1001;
+      if (clean) return;
+
+      // Dev hot-reload race: uvicorn --reload kills the WS during file save.
+      // If the WS opens then dies abnormally within the first 2 seconds, that's
+      // almost certainly a reload race — silently auto-retry once.
+      const lifetimeMs = Date.now() - sessionStartedAt;
+      if (ev.code === 1006 && lifetimeMs < 2000 && !autoRetryUsed) {
+        autoRetryUsed = true;
+        console.warn(
+          `[lumo] WS closed abnormally (1006) after ${lifetimeMs}ms — ` +
+            "likely a dev hot-reload race. Auto-retrying once in 1s…"
+        );
+        setTimeout(() => {
+          autoRetryUsed = false; // reset budget for the next user-initiated attempt
+          void startSession(ageBand);
+        }, 1000);
+        return;
       }
+
+      showFatalError({
+        title: "Connection lost",
+        message: "Lumo's connection dropped. Try starting a new session.",
+        detail: `code ${ev.code}${ev.reason ? ` · ${ev.reason}` : ""}`,
+        canRetry: true,
+        onRetry: () => void startSession(ageBand),
+      });
     });
 
     socket.onEvent("input_audio_buffer.speech_started", () => {
-      // Only fire a cancel when OpenAI actually has a response in flight.
-      // (Late audio deltas can arrive after response.done; without this gate
-      // we'd send response.cancel against nothing and get the
-      // `response_cancel_not_active` benign-error.)
-      if (responseInFlight) {
+      // Barge-in fires whenever the user can still HEAR Lumo — i.e. local
+      // audio is still playing. That covers both:
+      //   (a) Lumo is mid-response (responseInFlight=true), AND
+      //   (b) response.done arrived but the audio buffer hasn't drained yet.
+      // The response.cancel is only sent upstream when there's actually
+      // something to cancel; otherwise we just flush locally.
+      const audible = player?.isAudible() ?? false;
+      console.log(
+        "[lumo] speech_started — audible=", audible,
+        "responseInFlight=", responseInFlight,
+      );
+      if (audible) {
         // ── BARGE-IN ──
+        console.log("[lumo] BARGE-IN: flushing local audio" +
+          (responseInFlight ? " + sending response.cancel" : ""));
+        bargeInUntil = Date.now() + 500;
+        player?.flush();
+        if (responseInFlight) {
+          socket?.sendEvent({ type: "response.cancel" });
+        }
         responseInFlight = false;
         lumoIsSpeaking = false;
-        bargeInUntil = Date.now() + 300;
-        player?.flush();
-        socket?.sendEvent({ type: "response.cancel" });
-        discardStreamingAssistantMessage();
+        // Keep the partial bubble visible — the parent should see what
+        // Lumo started to say. The trailing "… interrupted" cue makes it
+        // clear the response was cut off. Calling this also removes the
+        // live-assistant-row id so subsequent cancel acks can't disturb it.
+        markAssistantInterrupted();
         hideThinkingIndicator();
         flashOrb();
         updateOrb("listening");
@@ -421,6 +457,7 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     socket.onEvent("response.created", () => {
+      console.log("[lumo] response.created → responseInFlight=true");
       responseInFlight = true;
     });
 
@@ -443,6 +480,7 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     socket.onEvent("response.cancelled", () => {
+      console.log("[lumo] response.cancelled (server confirmed)");
       responseInFlight = false;
       lumoIsSpeaking = false;
       hideThinkingIndicator();
@@ -450,6 +488,7 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     socket.onEvent("response.done", (ev) => {
+      console.log("[lumo] response.done status=", ev?.response?.status);
       responseInFlight = false;
       lumoIsSpeaking = false;
       const status = ev?.response?.status;
@@ -495,6 +534,7 @@ async function startSession(ageBand: string): Promise<void> {
     });
 
     try {
+      sessionStartedAt = Date.now();
       await socket.connect(5000);
     } catch (e) {
       console.error("Connect failed:", e);

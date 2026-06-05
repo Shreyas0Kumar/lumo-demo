@@ -8,7 +8,16 @@ let micWorklet: AudioWorkletNode | null = null;
 export async function startMic(
   onChunk: (pcm16: ArrayBuffer) => void
 ): Promise<void> {
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  // Explicit constraints — defaults vary by browser. Echo cancellation
+  // matters most for barge-in: it stops the mic from re-capturing Lumo's
+  // voice through speakers and triggering false interruptions.
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
   micCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
 
   await micCtx.audioWorklet.addModule("/mic-processor.js");
@@ -92,6 +101,15 @@ export class AudioPlayer {
     if (this.ctx.state === "suspended") {
       await this.ctx.resume();
     }
+  }
+
+  /**
+   * True iff there's audio scheduled to play that hasn't finished yet.
+   * This is the user-perceived "Lumo is speaking" state — it stays true
+   * during the buffer drain *after* OpenAI's response.done event.
+   */
+  isAudible(): boolean {
+    return this.ctx.state === "running" && this.ctx.currentTime < this.nextTime;
   }
 
   close(): void {
