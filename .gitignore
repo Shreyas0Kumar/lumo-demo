@@ -30,3 +30,6 @@ Thumbs.db
 # Tooling
 .claude/
 *.stackdump
+
+# Deploy notes (local only)
+DEPLOY.md
