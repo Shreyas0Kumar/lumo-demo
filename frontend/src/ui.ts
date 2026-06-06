@@ -1,12 +1,23 @@
 export type OrbState = "idle" | "listening" | "thinking" | "speaking";
 export type ScreenName = "landing" | "voice" | "summary" | "pin";
 
-const STATUS_TEXT: Record<OrbState, string> = {
-  idle: "Tap to speak",
-  listening: "Listening…",
-  thinking: "Thinking…",
-  speaking: "Speaking…",
+// Per-state config for the layered orb: state dot, label, sub-caption,
+// listening waveform visibility, and the orb-stage modifier class.
+const STATE_CFG: Record<OrbState, { dot: string; text: string; sub: string; wave: boolean; stage: string }> = {
+  idle:      { dot: "",         text: "Idle",      sub: "Tap to speak", wave: false, stage: "" },
+  listening: { dot: "active",   text: "Listening", sub: "Listening…",   wave: true,  stage: "listening" },
+  thinking:  { dot: "thinking", text: "Thinking",  sub: "Thinking…",    wave: false, stage: "thinking" },
+  speaking:  { dot: "speaking", text: "Speaking",  sub: "Speaking…",    wave: false, stage: "speaking" },
 };
+
+const LUMO_AVATAR_SVG = `<svg width="14" height="14" viewBox="0 0 26 26" aria-hidden="true"><defs><radialGradient id="lumoAvatarG" cx="38%" cy="32%"><stop offset="0%" stop-color="#FFFDF7"/><stop offset="100%" stop-color="#F4B24A"/></radialGradient></defs><circle cx="13" cy="13" r="10" fill="url(#lumoAvatarG)"/><circle cx="10" cy="10.5" r="1.6" fill="#1E1A14"/></svg>`;
+
+// Child's chat avatar label — set from the age gate name; defaults to "You".
+let childAvatarLabel = "You";
+export function setChildName(name: string): void {
+  const trimmed = (name ?? "").trim();
+  childAvatarLabel = trimmed ? trimmed[0].toUpperCase() : "You";
+}
 
 function $<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -51,37 +62,25 @@ function scrollTimelineToBottom(): void {
   t.scrollTop = t.scrollHeight;
 }
 
-function makeRow(role: "user" | "assistant"): HTMLDivElement {
+/** Build a chat row (avatar + bubble) matching the Lumo design language. */
+function buildMessage(role: "user" | "assistant"): { row: HTMLDivElement; bubble: HTMLDivElement } {
   const row = document.createElement("div");
-  row.style.cssText = `display:flex; justify-content:${role === "user" ? "flex-end" : "flex-start"}; margin-bottom:12px; padding:0 16px;`;
-  return row;
-}
-
-function makeBubble(role: "user" | "assistant"): HTMLDivElement {
+  row.className = `msg ${role}`;
+  const avatar = document.createElement("div");
+  avatar.className = "msg-avatar";
+  avatar.innerHTML = role === "user" ? childAvatarLabel : LUMO_AVATAR_SVG;
   const bubble = document.createElement("div");
-  bubble.style.cssText = `
-    max-width: 72%;
-    padding: 10px 14px;
-    border-radius: ${role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px"};
-    background: ${role === "user" ? "#F4ECDC" : "transparent"};
-    border: ${role === "user" ? "1px solid #E3D7BE" : "none"};
-    color: #1E1A14;
-    font-size: 15px;
-    line-height: 1.6;
-    text-align: left;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  `;
-  return bubble;
+  bubble.className = "msg-bubble";
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  return { row, bubble };
 }
 
 export function appendMessage(role: "user" | "assistant", text: string): void {
   hideEmptyState();
   const timeline = $("timeline");
-  const row = makeRow(role);
-  const bubble = makeBubble(role);
+  const { row, bubble } = buildMessage(role);
   bubble.textContent = text;
-  row.appendChild(bubble);
   timeline.appendChild(row);
   scrollTimelineToBottom();
 }
@@ -94,10 +93,9 @@ export function appendAssistantDelta(text: string): void {
   hideThinkingIndicator();
   const timeline = $("timeline");
   if (!liveAssistantBubble) {
-    const row = makeRow("assistant");
+    const { row, bubble } = buildMessage("assistant");
     row.id = "live-assistant-row";
-    liveAssistantBubble = makeBubble("assistant");
-    row.appendChild(liveAssistantBubble);
+    liveAssistantBubble = bubble;
     timeline.appendChild(row);
   }
   liveAssistantBubble.textContent = (liveAssistantBubble.textContent ?? "") + text;
@@ -124,14 +122,10 @@ export function discardStreamingAssistantMessage(): void {
 export function markAssistantInterrupted(): void {
   const row = document.getElementById("live-assistant-row");
   if (!row || !liveAssistantBubble) return;
-  // Trim trailing whitespace and append the cut indicator into the body.
   const text = (liveAssistantBubble.textContent ?? "").replace(/\s+$/, "");
   liveAssistantBubble.textContent = text ? text + " …" : "…";
-  // Italic muted hint underneath
   const hint = document.createElement("span");
-  hint.style.cssText =
-    "display:block; margin-top:6px; font-size:11px; font-style:italic;" +
-    " color:var(--ink-mute); letter-spacing:0.02em;";
+  hint.className = "msg-interrupted";
   hint.textContent = "interrupted";
   liveAssistantBubble.appendChild(hint);
   // Finalize so further deltas / cancel acks can't attach to or remove this row.
@@ -139,31 +133,17 @@ export function markAssistantInterrupted(): void {
   liveAssistantBubble = null;
 }
 
-// Live user transcript bubble — greyed, italic, right-aligned, in-timeline
+// Live user transcript bubble — dashed "pending" style, in-timeline.
 let liveTranscriptEl: HTMLDivElement | null = null;
 
 export function updateLiveTranscript(delta: string): void {
   hideEmptyState();
   const timeline = $("timeline");
   if (!liveTranscriptEl) {
-    const row = document.createElement("div");
+    const { row, bubble } = buildMessage("user");
     row.id = "live-transcript-row";
-    row.style.cssText = "display:flex; justify-content:flex-end; margin-bottom:12px; padding:0 16px;";
-    liveTranscriptEl = document.createElement("div");
-    liveTranscriptEl.style.cssText = `
-      max-width: 72%;
-      padding: 10px 14px;
-      border-radius: 18px 18px 4px 18px;
-      background: #FFFBF2;
-      border: 1px dashed #E3D7BE;
-      color: #8A8170;
-      font-size: 15px;
-      line-height: 1.6;
-      font-style: italic;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    `;
-    row.appendChild(liveTranscriptEl);
+    bubble.classList.add("pending");
+    liveTranscriptEl = bubble;
     timeline.appendChild(row);
   }
   liveTranscriptEl.textContent = (liveTranscriptEl.textContent ?? "") + delta;
@@ -184,25 +164,10 @@ export function appendPlaceholderUserMessage(): void {
   if (document.getElementById("placeholder-user-row")) return;
   hideEmptyState();
   const timeline = $("timeline");
-  const row = document.createElement("div");
+  const { row, bubble } = buildMessage("user");
   row.id = "placeholder-user-row";
-  row.style.cssText = "display:flex; justify-content:flex-end; margin-bottom:12px; padding:0 16px;";
-  const bubble = document.createElement("div");
-  bubble.style.cssText = `
-    max-width: 72%;
-    padding: 10px 14px;
-    border-radius: 18px 18px 4px 18px;
-    background: #FFFBF2;
-    border: 1px dashed #E3D7BE;
-    color: #8A8170;
-    font-size: 15px;
-    line-height: 1.6;
-    font-style: italic;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  `;
+  bubble.classList.add("pending");
   bubble.textContent = "…";
-  row.appendChild(bubble);
   timeline.appendChild(row);
   placeholderUserRow = row;
   scrollTimelineToBottom();
@@ -210,12 +175,9 @@ export function appendPlaceholderUserMessage(): void {
 
 export function replacePlaceholderUserMessage(text: string): void {
   if (placeholderUserRow) {
-    const bubble = placeholderUserRow.querySelector("div") as HTMLDivElement | null;
+    const bubble = placeholderUserRow.querySelector<HTMLDivElement>(".msg-bubble");
     if (bubble) {
-      bubble.style.background = "#F4ECDC";
-      bubble.style.border = "1px solid #E3D7BE";
-      bubble.style.color = "#1E1A14";
-      bubble.style.fontStyle = "normal";
+      bubble.classList.remove("pending");
       bubble.textContent = text;
     }
     placeholderUserRow.removeAttribute("id");
@@ -254,22 +216,19 @@ export function hideSafetyWarning(): void {
   if (banner) banner.style.display = "none";
 }
 
-// Assistant thinking dots
+// Assistant thinking dots — rendered inside a Lumo bubble.
 export function showThinkingIndicator(): void {
   hideEmptyState();
   if (document.getElementById("thinking-indicator")) return;
   const timeline = $("timeline");
-  const row = document.createElement("div");
+  const { row, bubble } = buildMessage("assistant");
   row.id = "thinking-indicator";
-  row.style.cssText = "display:flex; justify-content:flex-start; margin-bottom:12px; padding:0 16px;";
-  row.innerHTML = `
-    <div style="padding:12px 16px; border-radius:18px 18px 18px 4px; background:transparent;">
-      <div style="display:flex; gap:5px; align-items:center;">
-        <span style="width:6px;height:6px;border-radius:50%;background:#8A8170;animation:dotPulse 1.2s ease-in-out 0s infinite;"></span>
-        <span style="width:6px;height:6px;border-radius:50%;background:#8A8170;animation:dotPulse 1.2s ease-in-out 0.2s infinite;"></span>
-        <span style="width:6px;height:6px;border-radius:50%;background:#8A8170;animation:dotPulse 1.2s ease-in-out 0.4s infinite;"></span>
-      </div>
-    </div>`;
+  bubble.innerHTML = `
+    <span style="display:inline-flex; gap:5px; align-items:center;">
+      <span style="width:6px;height:6px;border-radius:50%;background:#8A8170;animation:dotPulse 1.2s ease-in-out 0s infinite;"></span>
+      <span style="width:6px;height:6px;border-radius:50%;background:#8A8170;animation:dotPulse 1.2s ease-in-out 0.2s infinite;"></span>
+      <span style="width:6px;height:6px;border-radius:50%;background:#8A8170;animation:dotPulse 1.2s ease-in-out 0.4s infinite;"></span>
+    </span>`;
   timeline.appendChild(row);
   scrollTimelineToBottom();
 }
@@ -279,10 +238,17 @@ export function hideThinkingIndicator(): void {
 }
 
 export function updateOrb(state: OrbState): void {
-  const orb = $("orb");
-  orb.classList.remove("listening", "thinking", "speaking");
-  if (state !== "idle") orb.classList.add(state);
-  $("status").textContent = STATUS_TEXT[state];
+  const cfg = STATE_CFG[state];
+  const stage = document.getElementById("orb-stage");
+  if (stage) stage.className = "orb-stage " + cfg.stage;
+  const dot = document.getElementById("state-dot");
+  if (dot) dot.className = "state-dot " + cfg.dot;
+  const text = document.getElementById("state-text");
+  if (text) text.textContent = cfg.text;
+  const wave = document.getElementById("orb-wave");
+  if (wave) wave.classList.toggle("show", cfg.wave);
+  const status = document.getElementById("status");
+  if (status) status.textContent = cfg.sub;
 }
 
 export function showError(msg: string): void {

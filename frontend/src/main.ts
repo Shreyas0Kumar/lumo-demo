@@ -12,6 +12,7 @@ import {
   markAssistantInterrupted,
   replacePlaceholderUserMessage,
   resetTimeline,
+  setChildName,
   showAgeGate,
   showError,
   showFatalError,
@@ -25,7 +26,7 @@ import {
 import { fetchSummary, renderSkeleton, renderSummary } from "./summary";
 import { LumoSocket } from "./ws";
 
-const DEFAULT_DURATION_S = 300;
+const DEFAULT_DURATION_S = 120;
 
 // ---------------- Error mapping ----------------
 
@@ -149,6 +150,7 @@ let lumoIsSpeaking = false;
 let responseInFlight = false; // OpenAI response lifecycle: created → done/cancelled
 let bargeInUntil = 0;
 let selectedDuration = DEFAULT_DURATION_S;
+let childName = "";
 let sessionStartedAt = 0;
 let autoRetryUsed = false; // single chance to silently retry on dev hot-reload races
 
@@ -158,19 +160,13 @@ document.getElementById("cta-hero")?.addEventListener("click", () => showAgeGate
 document.getElementById("cta-nav")?.addEventListener("click", () => showAgeGate());
 document.getElementById("age-close")?.addEventListener("click", () => hideAgeGate());
 
-document.querySelectorAll<HTMLButtonElement>(".dur-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".dur-btn").forEach((b) => b.classList.remove("selected"));
-    btn.classList.add("selected");
-    selectedDuration = parseInt(btn.dataset.seconds ?? `${DEFAULT_DURATION_S}`, 10);
-  });
-});
-
 document.querySelectorAll<HTMLButtonElement>(".age-card").forEach((card) => {
   card.addEventListener("click", () => {
     document.querySelectorAll(".age-card").forEach((c) => c.classList.remove("selected"));
     card.classList.add("selected");
     const age = card.dataset.age!;
+    const nameInput = document.getElementById("child-name") as HTMLInputElement | null;
+    childName = (nameInput?.value ?? "").trim();
     setTimeout(() => {
       hideAgeGate();
       void startSession(age);
@@ -331,6 +327,7 @@ function startTimer(seconds: number): void {
 // ---------------- Session lifecycle ----------------
 
 async function startSession(ageBand: string): Promise<void> {
+  setChildName(childName);
   showScreen("voice");
   updateOrb("idle");
 
@@ -610,7 +607,7 @@ async function endSession(): Promise<void> {
 
   try {
     const data = await fetchSummary(sid);
-    renderSummary(data, root);
+    renderSummary(data, root, childName);
     bindNewSessionButton();
   } catch (err) {
     console.error(err);
