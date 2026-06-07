@@ -24,6 +24,7 @@ class Settings:
     OPENAI_REALTIME_URL: str
     TTS_VOICE: str
     SESSION_MAX_DURATION_S: int
+    SESSION_CAP_PER_IP_PER_DAY: int
     DEBUG: bool
     ALLOWED_ORIGINS: list[str] = field(default_factory=lambda: ["*"])
 
@@ -36,6 +37,8 @@ settings = Settings(
     ),
     TTS_VOICE=os.getenv("TTS_VOICE", "alloy"),
     SESSION_MAX_DURATION_S=int(os.getenv("SESSION_MAX_DURATION_S", "300")),
+    # Per-IP daily session cap (cost guard). 0 disables the cap.
+    SESSION_CAP_PER_IP_PER_DAY=int(os.getenv("SESSION_CAP_PER_IP_PER_DAY", "5")),
     DEBUG=_bool(os.getenv("DEBUG"), False),
     ALLOWED_ORIGINS=_parse_origins(os.getenv("ALLOWED_ORIGINS")),
 )

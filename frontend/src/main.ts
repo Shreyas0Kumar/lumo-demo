@@ -27,6 +27,24 @@ import { fetchSummary, renderSkeleton, renderSummary } from "./summary";
 import { LumoSocket } from "./ws";
 
 const DEFAULT_DURATION_S = 120;
+const BACKEND_HTTP = (import.meta.env.VITE_BACKEND_HTTP as string | undefined) ?? "";
+
+interface QuotaResult { allowed: boolean; remaining: number; limit: number }
+
+/**
+ * Reserve a session against the per-IP/day cap before opening the realtime
+ * socket. Fails open (returns null → allow) if the quota service is
+ * unreachable so a backend hiccup never blocks the demo.
+ */
+async function reserveSession(): Promise<QuotaResult | null> {
+  try {
+    const res = await fetch(`${BACKEND_HTTP}/session/quota`, { method: "POST" });
+    if (!res.ok) return null;
+    return (await res.json()) as QuotaResult;
+  } catch {
+    return null;
+  }
+}
 
 // ---------------- Error mapping ----------------
 
@@ -339,6 +357,22 @@ function startTimer(seconds: number): void {
 
 async function startSession(ageBand: string): Promise<void> {
   setChildName(childName);
+
+  // Cost guard: per-IP/day session cap. Checked before the mic prompt or any
+  // OpenAI connection so a capped visitor sees a clean message and nothing else.
+  const quota = await reserveSession();
+  if (quota && !quota.allowed) {
+    showFatalError({
+      title: "Daily limit reached",
+      message:
+        `To keep this free demo sustainable, Lumo allows ${quota.limit} session` +
+        `${quota.limit === 1 ? "" : "s"} per day from each visitor. ` +
+        "Please come back tomorrow.",
+      canRetry: false,
+    });
+    return;
+  }
+
   showScreen("voice");
   updateOrb("idle");
 

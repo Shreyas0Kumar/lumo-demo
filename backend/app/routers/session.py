@@ -2,14 +2,44 @@ from __future__ import annotations
 
 from collections import Counter
 
-from fastapi import APIRouter, HTTPException, Query, WebSocket, status
+from fastapi import APIRouter, HTTPException, Query, Request, WebSocket, status
 
+from app.config import settings
+from app.rate_limit import limiter
 from app.services.safety.age_bands import VALID_AGE_BANDS
 from app.services.safety.parent_summary import format_summary
 from app.session_store import store
 from app.ws_proxy import proxy_session
 
 router = APIRouter(prefix="/session", tags=["session"])
+
+
+def _client_ip(request: Request) -> str:
+    """Resolve the real client IP, honoring nginx / Cloudflare proxy headers."""
+    cf = request.headers.get("cf-connecting-ip")
+    if cf:
+        return cf.strip()
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    xr = request.headers.get("x-real-ip")
+    if xr:
+        return xr.strip()
+    return request.client.host if request.client else "unknown"
+
+
+@router.post("/quota")
+async def reserve_quota(request: Request):
+    """Reserve one session for the caller's IP against the daily cap.
+
+    Called by the frontend *before* opening the realtime WebSocket so a capped
+    visitor gets a clean message without a mic prompt or any OpenAI cost.
+    """
+    limit = settings.SESSION_CAP_PER_IP_PER_DAY
+    if limit <= 0:
+        return {"allowed": True, "remaining": -1, "limit": 0}
+    allowed, remaining = limiter.consume(_client_ip(request), limit)
+    return {"allowed": allowed, "remaining": remaining, "limit": limit}
 
 
 def _serialize(session) -> dict:
