@@ -201,6 +201,13 @@ function init(): void {
     return;
   }
 
+  if (PIN_DISABLED) {
+    // PIN gate disabled (public demo): skip straight to the age gate.
+    showScreen("landing"); // hides the PIN screen (no landing div on demo.html)
+    showAgeGate();
+    return;
+  }
+
   // demo.html default: show PIN gate first. On success → age gate.
   showScreen("pin");
 }
@@ -208,7 +215,11 @@ function init(): void {
 // ---------------- PIN gate ----------------
 
 const CORRECT_PIN = (import.meta.env.VITE_DEMO_PIN as string | undefined) ?? "";
-if (!CORRECT_PIN) {
+// Temporary kill-switch: set VITE_DISABLE_PIN=true to make the demo public
+// (skips the PIN gate entirely). Set it back to false / remove it to re-enable.
+const rawDisablePin = ((import.meta.env.VITE_DISABLE_PIN as string | undefined) ?? "").toLowerCase();
+const PIN_DISABLED = rawDisablePin === "true" || rawDisablePin === "1";
+if (!CORRECT_PIN && !PIN_DISABLED) {
   console.warn(
     "[Lumo] VITE_DEMO_PIN is not set. The PIN gate will reject every entry. " +
       "Set VITE_DEMO_PIN in frontend/.env (dev) or in the Cloudflare Pages dashboard (prod)."
